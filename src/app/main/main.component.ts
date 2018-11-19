@@ -14,26 +14,23 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Renderer2, ViewChild, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, Renderer2, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
-import { MatPaginator, MatTableDataSource, MatSnackBar } from '@angular/material';
-import { CdkStepperModule, StepperSelectionEvent } from '@angular/cdk/stepper';
+import { MatTableDataSource, MatSnackBar } from '@angular/material';
+import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import { Subject } from 'rxjs/Subject';
 import { Subscription } from 'rxjs/Subscription';
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/map';
 
-import { StyleProp, StyleProps, StyleFunctions, StyleRule } from '../services/styles.service';
+import { StyleProps, StyleRule } from '../services/styles.service';
 import { BigQueryService, ColumnStat, Project } from '../services/bigquery.service';
 import {
   Step,
-  SAMPLE_PROJECT_ID,
   SAMPLE_QUERY,
   SAMPLE_FILL_COLOR,
   SAMPLE_FILL_OPACITY,
-  MAX_RESULTS,
   MAX_RESULTS_PREVIEW,
-  TIMEOUT_MS,
   SAMPLE_CIRCLE_RADIUS
 } from '../app.constants';
 

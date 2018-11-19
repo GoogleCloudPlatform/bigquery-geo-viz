@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import {Component, ElementRef, Input, ViewChild, AfterViewInit} from '@angular/core';
-import {StyleProps, StylesService, StyleRule} from '../services/styles.service';
+import { Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
+import { StyleProps, StylesService, StyleRule } from '../services/styles.service';
 import * as parseWKT from 'wellknown';
 
 interface IFeature {

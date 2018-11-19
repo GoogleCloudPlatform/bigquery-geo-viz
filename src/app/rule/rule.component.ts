@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-import {Component, ElementRef, forwardRef, Input, ViewChild, OnInit} from '@angular/core';
+import { Component, forwardRef, Input, OnInit } from '@angular/core';
 import {
   AbstractControl,
-  ControlValueAccessor,
   FormArray,
   FormControl,
   FormGroup,
   NG_VALUE_ACCESSOR,
-  NG_VALIDATORS,
-  Validator,
-  Validators
+  NG_VALIDATORS
 } from '@angular/forms';
-import {StyleFunctions, StyleProp, StyleProps, StylesService, StyleRule} from '../services/styles.service';
-import {ColumnStat} from '../services/bigquery.service';
-import {PALETTES} from '../app.constants';
+import { StyleFunctions, StyleProp, StyleRule } from '../services/styles.service';
+import { ColumnStat } from '../services/bigquery.service';
+import { PALETTES } from '../app.constants';
 
 /**
  * Custom form control for a single style rule.
