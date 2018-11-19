@@ -1,0 +1,54 @@
+mat-slide-toggle {
+    margin: 1em 0;
+}
+
+mat-form-field {
+    display: block;
+    max-width: 250px;
+}
+
+.array-field + .array-field {
+    margin-top: 1em;
+}
+
+.array-field-list {
+    display: flex;
+}
+
+.array-field-item {
+    position: relative;
+}
+
+.array-field-input {
+    border: 1px solid rgba(0, 0, 0, 0.32);
+    height: 32px;
+    line-height: 32px;
+    display: inline-block;
+    width: 72px;
+    margin: 0.5em 0.5em 0.5em 0;
+    padding: 0 1em;
+    font-family: inherit;
+    font-size: 1em;
+    color: rgba(0, 0, 0, 0.54);
+}
+
+.array-field-caption {
+    position: absolute;
+    bottom: -1.2em;
+    font-size: 0.8em;
+    color: #888;
+}
+
+.array-field-swatch {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    position: absolute;
+    right: 1em;
+    top: 1em;
+}
+
+button:not([disabled]) mat-icon.create {
+    color: #33AC71;
+}

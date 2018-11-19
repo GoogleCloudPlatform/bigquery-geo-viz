@@ -1,0 +1,92 @@
+<section [formGroup]="formGroup">
+  <p>{{ prop.description }}</p>
+  <mat-slide-toggle formControlName="isComputed">
+    Data-driven
+  </mat-slide-toggle>
+  <mat-form-field *ngIf="!_rule.isComputed">
+    <input matInput
+          placeholder="Value"
+          formControlName="value"
+          matTooltip="Value of this style for all features"
+          matTooltipPosition="after">
+  </mat-form-field>
+  <mat-form-field *ngIf="_rule.isComputed">
+    <mat-select placeholder="Function"
+                formControlName="function"
+                matTooltip="Function used to compute a style value from a field's values"
+                matTooltipPosition="after">
+      <mat-option value="">None</mat-option>
+      <mat-option *ngFor="let fn of StyleFunctions"
+                  [value]="fn.name"
+                  [disabled]="fn.disabled"
+                  [matTooltip]="fn.description"
+                  matTooltipPosition="after">
+        {{ fn.name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-form-field *ngIf="_rule.isComputed">
+    <mat-select placeholder="Field"
+                formControlName="property"
+                matTooltip="Field in data used as input to the styling function"
+                matTooltipPosition="after">
+      <mat-option value="">None</mat-option>
+      <mat-option  *ngFor="let column of columns;" [value]="column">
+        {{ column }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <div class="array-field" *ngIf="_rule.isComputed && getPropNeedsMapping()">
+    <label>Domain</label>
+    <button mat-icon-button
+            color="primary"
+            type="button"
+            (click)="addDomainRangeValue()"
+            style="margin-right: -10px;">
+      <mat-icon class="create" aria-label="Add domain value">add_circle</mat-icon>
+    </button>
+    <button mat-icon-button
+            color="warn"
+            type="button"
+            (click)="removeDomainRangeValue()">
+      <mat-icon class="remove" aria-label="Remove domain/range value">remove_circle</mat-icon>
+    </button>
+    <div class="array-field-list">
+      <span *ngFor="let d of getDomainControls(); let i = index; let first = first; let last = last;"
+            class="array-field-item">
+        <input [formControl]="d" class="array-field-input">
+        <span *ngIf="(first || last) && stats"
+              class="array-field-caption">
+          {{ first ? ('min: ' + stats.min) : ('max: ' + stats.max) }}
+        </span>
+      </span>
+    </div>
+  </div>
+  <div class="array-field" *ngIf="_rule.isComputed && getPropNeedsMapping()">
+    <label>Range</label>
+    <button *ngIf="prop.type === 'color'"
+            mat-icon-button
+            type="button"
+            (click)="addRandomColors()"
+            style="margin-right: -10px;">
+      <mat-icon class="create" aria-label="Randomize colors">refresh</mat-icon>
+    </button>
+    <div class="array-field-list">
+      <span *ngFor="let d of getRangeControls(); let i = index" class="array-field-item">
+        <input *ngIf="prop.type !== 'color'"
+              [formControl]="d"
+              class="array-field-input">
+        <span *ngIf="prop.type === 'color'"
+              [(colorPicker)]="d.value"
+              [cpPresetColors]="['#edf8fb','#ccece6','#99d8c9','#66c2a4','#2ca25f','#006d2c']"
+              cpUseRootViewContainer="true"
+              cpPosition="top"
+              (colorPickerChange)="onColorChange()"
+              class="array-field-input">
+          {{d.value}}
+        </span>
+        <span *ngIf="prop.type === 'color'" class="array-field-swatch" [ngStyle]="{'background': d.value}"></span>
+      </span>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BigQuery Geo Viz</title>
+  <base href="/">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v2">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://codemirror.net/lib/codemirror.css" rel="stylesheet">
+  <script>
+    window.pendingMap = new Promise((resolve) => {
+      window.initMap = () => resolve();
+    });
+    window.pendingGapi = new Promise((resolve) => {
+      window.initGapi = () => {
+        gapi.load('client:auth2', () => resolve());
+      };
+    });
+  </script>
+  <!-- Maps API key for local development and production site. For custom apps, create a new API key. -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBcBYfAC-dAn3kGoQexWsYPA0i4L14ubcA&callback=initMap" async defer></script>
+  <script async defer src="https://apis.google.com/js/api.js"
+    onload="this.onload=function(){};initGapi()"
+    onreadystatechange="if (this.readyState === 'complete') this.onload()">
+  </script>
+</head>
+<body>
+  <!-- App -->
+  <app-root></app-root>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-118124783-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-118124783-1');
+  </script>
+</body>
+</html>

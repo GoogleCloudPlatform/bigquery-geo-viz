@@ -1,0 +1,10 @@
+@import '~@angular/material/theming';
+@include mat-core();
+
+$bqmapper-primary: mat-palette($mat-teal);
+$bqmapper-accent:  mat-palette($mat-blue, 500, 900, A100);
+$bqmapper-warn:    mat-palette($mat-red);
+
+$bqmapper-theme: mat-light-theme($bqmapper-primary, $bqmapper-accent, $bqmapper-warn);
+
+@include angular-material-theme($bqmapper-theme);
