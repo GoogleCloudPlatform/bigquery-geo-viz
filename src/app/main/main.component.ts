@@ -97,7 +97,7 @@ export class MainComponent implements OnInit, OnDestroy {
     // Set up BigQuery service.
     this.dataService.onSigninChange(() => this.onSigninChange());
     this.dataService.init()
-      .catch((e) => this.showMessage(e.message));
+      .catch((e) => this.showMessage(parseErrorMessage(e)));
   }
 
   ngOnInit() {
@@ -175,7 +175,7 @@ export class MainComponent implements OnInit, OnDestroy {
       })
       .catch((e) => {
         this.bytesProcessed = -1;
-        this.lintMessage = e.message;
+        this.lintMessage = parseErrorMessage(e);
       });
   }
 
@@ -194,7 +194,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
       })
       .catch((e) => {
-        this.showMessage('Error: ' + (e.message || 'Something went wrong.'));
+        this.showMessage(parseErrorMessage(e));
       })
       .then(() => {
         this.pending = false;
@@ -277,10 +277,18 @@ export class MainComponent implements OnInit, OnDestroy {
     return <FormGroup>this.stylesFormGroup.controls[propName];
   }
 
-  showMessage(message: string, duration: number = 2000) {
+  showMessage(message: string, duration: number = 5000) {
     console.warn(message);
     this._ngZone.run(() => {
       this._snackbar.open(message, undefined, { duration: duration });
     });
   }
+}
+
+function parseErrorMessage (e, defaultMessage = 'Something went wrong') {
+  if (e.message) { return e.message; }
+  if (e.result && e.result.error && e.result.error.message) {
+    return e.result.error.message;
+  }
+  return defaultMessage;
 }
