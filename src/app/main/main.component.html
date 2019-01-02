@@ -37,10 +37,18 @@
             <mat-form-field class="wide sql-location">
               <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model" matTooltip="Select processing location."
                 matTooltipPosition="after">
-                <mat-option value="">Unspecified</mat-option>
-                <mat-option value="asia-northeast1">asia-northeast1</mat-option>
-                <mat-option value="EU">EU</mat-option>
-                <mat-option value="US">US</mat-option>
+                <mat-option value="">Auto-select</mat-option>
+                <mat-option value="US">United States (US)</mat-option>
+                <mat-option value="EU">European Union (EU)</mat-option>
+                <mat-option value="us-east4">Northern Virginia (us-east4)</mat-option>
+                <mat-option value="northamerica-northeast1">Montréal (northamerica-northeast1)</mat-option>
+                <mat-option value="europe-west2">London (europe-west2)</mat-option>
+                <mat-option value="europe-north1">Finland (europe-north1)</mat-option>
+                <mat-option value="asia-south1">Mumbai (asia-south1)</mat-option>
+                <mat-option value="asia-southeast1">Singapore (asia-southeast1)</mat-option>
+                <mat-option value="asia-east1">Taiwan (asia-east1)</mat-option>
+                <mat-option value="asia-northeast1">Tokyo (asia-northeast1)</mat-option>
+                <mat-option value="australia-southeast1">Sydney (australia-southeast1)</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
