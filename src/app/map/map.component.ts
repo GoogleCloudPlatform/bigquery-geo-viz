@@ -17,12 +17,13 @@
 import { Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
 import { StyleProps, StylesService, StyleRule } from '../services/styles.service';
 import * as parseWKT from 'wellknown';
+import { Deck } from '@deck.gl/core';
+import { GeoJsonLayer } from '@deck.gl/layers';
+import bbox from '@turf/bbox';
 
-interface IFeature {
-  setMap(map: google.maps.Map|null): void;
-  setOptions(options: google.maps.PolylineOptions|google.maps.PolygonOptions): void;
-  addListener(type: string, fn: (e: google.maps.MouseEvent) => void): void;
-}
+const TILE_SIZE = 256;
+
+const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 
 @Component({
   selector: 'app-map',
@@ -40,17 +41,21 @@ export class MapComponent implements AfterViewInit {
   infoWindow: google.maps.InfoWindow;
 
   // Basemap styles.
-  pendingStyles: Promise<Array<google.maps.MapTypeStyle>>;
+  pendingStyles: Promise<google.maps.MapTypeStyle[]>;
 
   // Styling service.
   readonly styler = new StylesService();
 
-  private _rows: Array<Object>;
+  private _rows: object[];
   private _geoColumn: string;
-  private _geodesicFeatures: Map<google.maps.Data.Feature, IFeature|Array<IFeature>> = new Map();
+
+  private _isMounted = false;
+  private _canvasEl: HTMLCanvasElement = null;
+  private _deckInstance: Deck = null;
+  private _overlay: google.maps.OverlayView = null;
 
   @Input()
-  set rows(rows: Array<Object>) {
+  set rows(rows: object[]) {
     this._rows = rows;
     this.updateGeoJSON();
   }
@@ -62,7 +67,7 @@ export class MapComponent implements AfterViewInit {
   }
 
   @Input()
-  set styles(styles: Array<StyleRule>) {
+  set styles(styles: StyleRule[]) {
     this.updateStyles(styles);
   }
 
@@ -77,13 +82,56 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit() {
     Promise.all([ pendingMap, this.pendingStyles ])
       .then(([_, mapStyles]) => {
-        this.map = new google.maps.Map(this.mapEl.nativeElement, {center: {lat: 45, lng: 0}, zoom: 2});
+        this.map = new google.maps.Map(this.mapEl.nativeElement, {
+          center: {lat: INITIAL_VIEW_STATE.latitude, lng: INITIAL_VIEW_STATE.longitude},
+          zoom: INITIAL_VIEW_STATE.zoom
+        });
         this.map.setOptions({styles: mapStyles});
         this.infoWindow = new google.maps.InfoWindow({content: ''});
         this.map.data.addListener('click', (e) => {
           this.showInfoWindow(e.feature, e.latLng);
         });
+        this._overlay = new google.maps.OverlayView();
+        this._overlay.draw = () => this._draw();
+        this._overlay.setMap(this.map);
       });
+
+    // Create DeckGL instance.
+    this._canvasEl = document.createElement('canvas');
+    this._canvasEl.width = this.mapEl.nativeElement.clientWidth;
+    this._canvasEl.height = this.mapEl.nativeElement.clientHeight;
+    this._canvasEl.style.position = 'absolute'; // needed?
+    this._deckInstance = new Deck({
+      canvas: this._canvasEl,
+      width: this._canvasEl.width,
+      height: this._canvasEl.height,
+      initialViewState: INITIAL_VIEW_STATE,
+      // Google Maps Platform has no rotating capabilities, so we disable rotation here.
+      controller: {
+        scrollZoom: false,
+        dragPan: false,
+        dragRotate: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        touchRotate: false,
+        keyboard: false,
+      },
+      layers: []
+    });
+
+    window.addEventListener('resize', () => this._onResize());
+  }
+
+  _onResize() {
+    const width = this.mapEl.nativeElement.clientWidth;
+    const height = this.mapEl.nativeElement.clientHeight;
+    this._canvasEl.width = width;
+    this._canvasEl.height = height;
+
+    if (this._deckInstance) {
+      this._deckInstance.width = width;
+      this._deckInstance.height = height;
+    }
   }
 
   /**
@@ -93,121 +141,71 @@ export class MapComponent implements AfterViewInit {
     if (!this._rows || !this._geoColumn) { return; }
 
     // Remove old features.
-    this.map.data.forEach((feature) => this.map.data.remove(feature));
-    this._geodesicFeatures.forEach((feature) => {
-      if (Array.isArray(feature)) {
-        feature.forEach((f) => f.setMap(null));
-      } else {
-        feature.setMap(null);
-      }
-    });
-    this._geodesicFeatures.clear();
+    this._deckInstance.setProps({ layers: [] });
 
-    const bounds = new google.maps.LatLngBounds();
+    const features = [];
 
     // Add new features.
     this._rows.forEach((row) => {
       try {
         const geometry = parseWKT(row[this._geoColumn]);
         const feature = {type: 'Feature', geometry, properties: row};
-        this.map.data.addGeoJson(feature);
+        features.push(feature);
       } catch (e) {
         // Parsing can fail (e.g. invalid WKT); just log the error.
         console.error(e);
       }
     });
 
-    // Convert to equivalent geodesic features.
-    this.map.data.forEach((f: google.maps.Data.Feature) => {
-      const g = f.getGeometry();
-
-      if (!g) { return; }
-
-      switch (g.getType()) {
-
-        case 'Point':
-        case 'MultiPoint':
-          break;
-
-        case 'LineString':
-          this.map.data.overrideStyle(f, { visible: false });
-          this._geodesicFeatures.set(f, new google.maps.Polyline({
-            path: (<google.maps.Data.LineString>g).getArray(),
-            map: this.map,
-            geodesic: true
-          }));
-          break;
-
-        case 'MultiLineString':
-          this.map.data.overrideStyle(f, { visible: false });
-          const polylinePathList = (<google.maps.Data.MultiLineString>g).getArray().map((line) => line.getArray());
-          this._geodesicFeatures.set(f, polylinePathList.map((polylinePath) => new google.maps.Polyline({
-            path: polylinePath,
-            map: this.map,
-            geodesic: true
-          })));
-          break;
-
-        case 'Polygon':
-          this.map.data.overrideStyle(f, { visible: false });
-          const paths = (<google.maps.Data.Polygon>g).getArray().map((ring) => ring.getArray());
-          this._geodesicFeatures.set(f, new google.maps.Polygon({
-            paths: paths,
-            map: this.map,
-            geodesic: true
-          }));
-          break;
-
-        case 'MultiPolygon':
-          this.map.data.overrideStyle(f, { visible: false });
-          const polygonPathsList = (<google.maps.Data.MultiPolygon>g).getArray()
-            .map((polygon) => polygon.getArray().map((ring) => ring.getArray()));
-          this._geodesicFeatures.set(f, polygonPathsList.map((polygonPaths) => new google.maps.Polygon({
-            paths: polygonPaths,
-            map: this.map,
-            geodesic: true
-          })));
-          break;
-
-        default:
-          console.warn(`Geodesic conversion not yet implemented for type "${g.getType()}".`);
-
-      }
-
-      // Add event listeners to converted features.
-      if (this._geodesicFeatures.has(f)) {
-        let geometries = this._geodesicFeatures.get(f);
-        geometries = Array.isArray(geometries) ? geometries : [geometries];
-        geometries.forEach((geom) => {
-          geom.addListener('click', (e) => this.showInfoWindow(f, e.latLng));
-        });
-      }
-
-      recursiveExtendBounds(g, bounds.extend, bounds);
+    // Create GeoJSON layer.
+    const layer = new GeoJsonLayer({
+      id: 'geojson-layer',
+      data: features,
+      pickable: true,
+      stroked: false,
+      filled: true,
+      extruded: true,
+      lineWidthScale: 20,
+      lineWidthMinPixels: 2,
+      getFillColor: [160, 160, 180, 200],
+      getLineColor: (d) => [255, 0, 128],
+      getRadius: 100,
+      getLineWidth: 1,
     });
 
+    this._deckInstance.setProps({layers: [layer]});
+
+
+    // Fit viewport bounds to the data.
+    const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features});
+    const bounds = new google.maps.LatLngBounds(
+      new google.maps.LatLng(minY, minX),
+      new google.maps.LatLng(maxY, maxX)
+    );
     if (!bounds.isEmpty()) { this.map.fitBounds(bounds); }
   }
 
   /**
    * Updates styles applied to all GeoJSON features.
    */
-  updateStyles(styles: Array<StyleRule>) {
+  updateStyles(styles: StyleRule[]) {
     if (!this.map) { return; }
     this.styler.uncache();
-    this.map.data.forEach((feature) => {
-      const featureStyles = this.getStylesForFeature(feature, styles);
-      if (this._geodesicFeatures.has(feature)) {
-        const geodesicFeature = this._geodesicFeatures.get(feature);
-        if (Array.isArray(geodesicFeature)) {
-          geodesicFeature.forEach((f) => f.setOptions(featureStyles));
-        } else {
-          (<google.maps.Polyline> geodesicFeature).setOptions(featureStyles);
-        }
-      } else {
-        this.map.data.overrideStyle(feature, featureStyles);
-      }
-    });
+    // TODO(donmccurdy): Update styles.
+
+    // this.map.data.forEach((feature) => {
+    //   const featureStyles = this.getStylesForFeature(feature, styles);
+    //   if (this._geodesicFeatures.has(feature)) {
+    //     const geodesicFeature = this._geodesicFeatures.get(feature);
+    //     if (Array.isArray(geodesicFeature)) {
+    //       geodesicFeature.forEach((f) => f.setOptions(featureStyles));
+    //     } else {
+    //       (<google.maps.Polyline> geodesicFeature).setOptions(featureStyles);
+    //     }
+    //   } else {
+    //     this.map.data.overrideStyle(feature, featureStyles);
+    //   }
+    // });
   }
 
   /**
@@ -251,6 +249,47 @@ export class MapComponent implements AfterViewInit {
     this.infoWindow.setContent(`<pre>${JSON.stringify(properties, null, 2)}</pre>`);
     this.infoWindow.open(this.map);
     this.infoWindow.setPosition(latLng);
+  }
+
+  _draw () {
+    // Methods like map.getCenter() and map.getZoom() return rounded values that
+    // don't stay in sync during zoom and pan gestures, so compute center and
+    // zoom from the overlay projection, instead.
+    // Don't call overlay.getPanes() until map has initialized.
+    if (!this._isMounted) {
+      const overlayLayerEl = this._overlay.getPanes().overlayLayer;
+      overlayLayerEl.appendChild(this._canvasEl);
+      this._isMounted = true;
+    }
+
+    const { clientWidth, clientHeight } = this.mapEl.nativeElement;
+    const projection = this._overlay.getProjection();
+
+    // Fit canvas to current viewport.
+    const bounds = this.map.getBounds();
+    const nwContainerPx = new google.maps.Point(0, 0);
+    const nw = projection.fromContainerPixelToLatLng(nwContainerPx);
+    const nwDivPx = projection.fromLatLngToDivPixel(nw);
+    this._canvasEl.style.top = nwDivPx.y + 'px';
+    this._canvasEl.style.left = nwDivPx.x + 'px';
+
+    // Compute fractional zoom.
+    const zoom = Math.log2(projection.getWorldWidth() / TILE_SIZE) - 1;
+
+    // Compute fractional center.
+    const centerPx = new google.maps.Point(clientWidth / 2, clientHeight / 2);
+    const centerContainer = projection.fromContainerPixelToLatLng(centerPx);
+    const latitude = centerContainer.lat();
+    const longitude = centerContainer.lng();
+
+    const deck = this._deckInstance;
+    deck.setProps({ viewState: { zoom, latitude, longitude } });
+    if (deck.layerManager) {
+      // TODO(donmccurdy): This should be wrapped up in a public `.redraw()` API.
+      deck.animationLoop._setupFrame();
+      deck.animationLoop._updateCallbackData();
+      deck.animationLoop.onRender(deck.animationLoop.animationProps);
+    }
   }
 }
 
