@@ -30,3 +30,5 @@ import 'zone.js/dist/zone';  // Included with Angular CLI.
 /***************************************************************************************************
  * APPLICATION IMPORTS
  */
+// See https://github.com/valor-software/ng2-dragula/issues/849.
+(window as any).global = window;
