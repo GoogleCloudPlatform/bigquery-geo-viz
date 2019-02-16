@@ -209,6 +209,7 @@ export class MapComponent implements AfterViewInit {
       pointRadiusScale: 20,
       lineWidthScale: 20,
       lineWidthMinPixels: 2,
+      elevationScale: 0.01,
       getFillColor: (d) => {
         let color = this.getStyle(d, this._styles, 'fillColor');
         if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
