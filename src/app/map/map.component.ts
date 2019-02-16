@@ -16,10 +16,10 @@
 
 import { Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
 import { StyleProps, StylesService, StyleRule } from '../services/styles.service';
-import * as parseWKT from 'wellknown';
 import { Deck } from '@deck.gl/core';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import bbox from '@turf/bbox';
+import { GeoJSONService } from '../services/geojson.service';
 
 const TILE_SIZE = 256;
 
@@ -46,7 +46,9 @@ export class MapComponent implements AfterViewInit {
   // Styling service.
   readonly styler = new StylesService();
 
-  private _rows: object[];
+  private _rows: object[] = [];
+  private _features: object[] = [];
+  private _styles: StyleRule[] = [];
   private _geoColumn: string;
 
   private _isMounted = false;
@@ -57,18 +59,21 @@ export class MapComponent implements AfterViewInit {
   @Input()
   set rows(rows: object[]) {
     this._rows = rows;
-    this.updateGeoJSON();
+    this.updateFeatures();
+    this.updateStyles();
   }
 
   @Input()
   set geoColumn(geoColumn: string) {
     this._geoColumn = geoColumn;
-    this.updateGeoJSON();
+    this.updateFeatures();
+    this.updateStyles();
   }
 
   @Input()
   set styles(styles: StyleRule[]) {
-    this.updateStyles(styles);
+    this._styles = styles;
+    this.updateStyles();
   }
 
   constructor () {
@@ -137,47 +142,11 @@ export class MapComponent implements AfterViewInit {
   /**
    * Converts row objects into GeoJSON, then loads into Maps API.
    */
-  updateGeoJSON() {
-    if (!this._rows || !this._geoColumn) { return; }
-
-    // Remove old features.
-    this._deckInstance.setProps({ layers: [] });
-
-    const features = [];
-
-    // Add new features.
-    this._rows.forEach((row) => {
-      try {
-        const geometry = parseWKT(row[this._geoColumn]);
-        const feature = {type: 'Feature', geometry, properties: row};
-        features.push(feature);
-      } catch (e) {
-        // Parsing can fail (e.g. invalid WKT); just log the error.
-        console.error(e);
-      }
-    });
-
-    // Create GeoJSON layer.
-    const layer = new GeoJsonLayer({
-      id: 'geojson-layer',
-      data: features,
-      pickable: true,
-      stroked: false,
-      filled: true,
-      extruded: true,
-      lineWidthScale: 20,
-      lineWidthMinPixels: 2,
-      getFillColor: [160, 160, 180, 200],
-      getLineColor: (d) => [255, 0, 128],
-      getRadius: 100,
-      getLineWidth: 1,
-    });
-
-    this._deckInstance.setProps({layers: [layer]});
-
+  updateFeatures() {
+    this._features = GeoJSONService.rowsToGeoJSON(this._rows, this._geoColumn);
 
     // Fit viewport bounds to the data.
-    const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features});
+    const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features: this._features});
     const bounds = new google.maps.LatLngBounds(
       new google.maps.LatLng(minY, minX),
       new google.maps.LatLng(maxY, maxX)
@@ -188,52 +157,53 @@ export class MapComponent implements AfterViewInit {
   /**
    * Updates styles applied to all GeoJSON features.
    */
-  updateStyles(styles: StyleRule[]) {
+  updateStyles() {
     if (!this.map) { return; }
     this.styler.uncache();
-    // TODO(donmccurdy): Update styles.
 
-    // this.map.data.forEach((feature) => {
-    //   const featureStyles = this.getStylesForFeature(feature, styles);
-    //   if (this._geodesicFeatures.has(feature)) {
-    //     const geodesicFeature = this._geodesicFeatures.get(feature);
-    //     if (Array.isArray(geodesicFeature)) {
-    //       geodesicFeature.forEach((f) => f.setOptions(featureStyles));
-    //     } else {
-    //       (<google.maps.Polyline> geodesicFeature).setOptions(featureStyles);
-    //     }
-    //   } else {
-    //     this.map.data.overrideStyle(feature, featureStyles);
-    //   }
-    // });
+    // Remove old features.
+    this._deckInstance.setProps({ layers: [] });
+
+    // Create GeoJSON layer.
+    const colorRe = /(\d+), (\d+), (\d+)/;
+    const layer = new GeoJsonLayer({
+      id: 'geojson-layer',
+      data: this._features,
+      pickable: true,
+      autoHighlight: true,
+      highlightColor: [219, 68, 55], // #DB4437
+      stroked: false,
+      filled: true,
+      extruded: true,
+      pointRadiusScale: 20,
+      lineWidthScale: 20,
+      lineWidthMinPixels: 2,
+      getFillColor: (d) => {
+        let color = this.getStyle(d, this._styles, 'fillColor');
+        if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
+        const opacity = this.getStyle(d, this._styles, 'fillOpacity');
+        return [...color, opacity * 256];
+      },
+      getLineColor: (d) => {
+        let color = this.getStyle(d, this._styles, 'strokeColor');
+        if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
+        const opacity = this.getStyle(d, this._styles, 'strokeOpacity');
+        return [...color, opacity * 256];
+      },
+      getRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
+      getLineWidth: (d) => this.getStyle(d, this._styles, 'strokeWeight'),
+    });
+
+    this._deckInstance.setProps({ layers: [layer] });
   }
 
   /**
-   * Returns applicable style rules for a given row.
-   * @param row
-   * @param styles
+   * Return a given style for a given feature.
+   * @param feature
+   * @param style
    */
-  getStylesForFeature (feature: google.maps.Data.Feature, styles) {
-    // Extract properties from feature instance.
-    const properties = {};
-    feature.forEachProperty((value, key) => {
-      properties[key] = value;
-    });
-
-    // Parse styles.
-    const featureStyles = {};
-    StyleProps.forEach((style) => {
-      featureStyles[style.name] = this.styler.parseStyle(style.name, properties, styles[style.name]);
-    });
-
-    // Maps API has no 'circleRadius' property, so create a scaled icon on the fly.
-    const geometry = feature.getGeometry();
-    const type = geometry && geometry.getType();
-    if (type === 'Point' && featureStyles['circleRadius']) {
-      featureStyles['icon'] = this.styler.getIcon(featureStyles['circleRadius'], featureStyles['fillColor'], featureStyles['fillOpacity']);
-      delete featureStyles['circleRadius'];
-    }
-    return featureStyles;
+  getStyle (feature, styles: StyleRule[], styleName: string) {
+    return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
   }
 
   /**

@@ -22,42 +22,42 @@ export const Step = {
     STYLE: 2
 };
 
-export const SAMPLE_PROJECT_ID = 'google.com:bqmapper';
-export const SAMPLE_QUERY = `SELECT
-  ST_GeogPoint(longitude, latitude)  AS WKT,
-  capacity,
-  num_bikes_available,
-  num_bikes_disabled,
-  num_docks_available
-FROM
-  \`bigquery-public-data.new_york.citibike_stations\`
-  where capacity > 0
-LIMIT
-  1000;`;
-
-export const SAMPLE_FILL_OPACITY = {isComputed: false, value: 0.8};
-export const SAMPLE_FILL_COLOR = {
-  isComputed: true,
-  property: 'num_bikes_disabled',
-  function: 'interval',
-  domain: [1, 100],
-  range: ['#4285f4', '#9c27b0']
-};
-export const SAMPLE_CIRCLE_RADIUS = {
-  isComputed: true,
-  property: 'num_bikes_available',
-  function: 'linear',
-  domain: [0, 60],
-  range: [2, 24]
-};
-
 // Maximum number of results to be returned by BigQuery API.
-export const MAX_RESULTS = 2000;
+export const MAX_RESULTS = 50000;
 
 // Maximum number of results to be shown in the HTML preview table.
 export const MAX_RESULTS_PREVIEW = 10;
 
 // How long to wait for the query to complete, in milliseconds, before the request times out and returns.
 export const TIMEOUT_MS = 120000;
+
+export const SAMPLE_PROJECT_ID = 'google.com:bqmapper';
+export const SAMPLE_QUERY = `SELECT
+  ST_GeogPoint(longitude, latitude)  AS WKT,
+  status,
+  health,
+  spc_common,
+  user_type,
+  problems,
+  tree_dbh
+FROM \`bigquery-public-data.new_york_trees.tree_census_2015\`
+WHERE status = 'Alive'
+LIMIT ${MAX_RESULTS};`;
+
+export const SAMPLE_FILL_OPACITY = {isComputed: false, value: 0.8};
+export const SAMPLE_FILL_COLOR = {
+  isComputed: true,
+  property: 'health',
+  function: 'categorical',
+  domain: ['Poor', 'Fair', 'Good'],
+  range: ['#F44336', '#FFC107', '#4CAF50']
+};
+export const SAMPLE_CIRCLE_RADIUS = {
+  isComputed: true,
+  property: 'tree_dbh',
+  function: 'linear',
+  domain: [0, 500],
+  range: [2, 12]
+};
 
 export const PALETTES = Object.keys(colorbrewer).map((key) => colorbrewer[key]);
