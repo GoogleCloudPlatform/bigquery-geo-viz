@@ -206,7 +206,7 @@ export class MapComponent implements AfterViewInit {
       stroked: false,
       filled: true,
       extruded: true,
-      pointRadiusScale: 20,
+      pointRadiusScale: 5,
       lineWidthScale: 20,
       lineWidthMinPixels: 2,
       elevationScale: 0.01,
