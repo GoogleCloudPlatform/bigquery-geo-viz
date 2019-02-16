@@ -15,11 +15,13 @@
  */
 
 import { Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
-import { StyleProps, StylesService, StyleRule } from '../services/styles.service';
+import { StylesService, StyleRule } from '../services/styles.service';
 import { Deck } from '@deck.gl/core';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import bbox from '@turf/bbox';
-import { GeoJSONService } from '../services/geojson.service';
+import { GeoJSONService, GeoJSONFeature } from '../services/geojson.service';
+
+const LAYER_ID = 'geojson-layer';
 
 const TILE_SIZE = 256;
 
@@ -47,7 +49,7 @@ export class MapComponent implements AfterViewInit {
   readonly styler = new StylesService();
 
   private _rows: object[] = [];
-  private _features: object[] = [];
+  private _features: GeoJSONFeature[] = [];
   private _styles: StyleRule[] = [];
   private _geoColumn: string;
 
@@ -55,6 +57,7 @@ export class MapComponent implements AfterViewInit {
   private _canvasEl: HTMLCanvasElement = null;
   private _deckInstance: Deck = null;
   private _overlay: google.maps.OverlayView = null;
+  private _hoveredFeature: GeoJSONFeature = null;
 
   @Input()
   set rows(rows: object[]) {
@@ -99,6 +102,8 @@ export class MapComponent implements AfterViewInit {
         this._overlay = new google.maps.OverlayView();
         this._overlay.draw = () => this._draw();
         this._overlay.setMap(this.map);
+        this.map.addListener('click', (e) => this._onClick(e));
+        this.map.addListener('mousemove', (e) => this._onMousemove(e));
       });
 
     // Create DeckGL instance.
@@ -139,6 +144,32 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
+  _onClick(e: google.maps.MouseEvent) {
+    const { x, y } = e['pixel'];
+    const picked = this._deckInstance.pickObject({ x, y, radius: 4 });
+
+    if (picked) {
+      this.showInfoWindow(picked.object, e.latLng);
+    }
+  }
+
+  _onMousemove(e: google.maps.MouseEvent) {
+    if (!this._deckInstance.layerManager) {
+      return;
+    }
+
+    const { x, y } = e['pixel'];
+    const picked = this._deckInstance.pickObject({ x, y, radius: 0 });
+
+    if (picked && this._hoveredFeature !== picked.object) {
+      this._hoveredFeature = picked.object;
+      document.body.classList.add('cursor-pointer');
+    } else if (!picked) {
+      this._hoveredFeature = null;
+      document.body.classList.remove('cursor-pointer');
+    }
+  }
+
   /**
    * Converts row objects into GeoJSON, then loads into Maps API.
    */
@@ -167,7 +198,7 @@ export class MapComponent implements AfterViewInit {
     // Create GeoJSON layer.
     const colorRe = /(\d+), (\d+), (\d+)/;
     const layer = new GeoJsonLayer({
-      id: 'geojson-layer',
+      id: LAYER_ID,
       data: this._features,
       pickable: true,
       autoHighlight: true,
@@ -211,12 +242,8 @@ export class MapComponent implements AfterViewInit {
    * @param feature
    * @param latLng
    */
-  showInfoWindow (feature: google.maps.Data.Feature, latLng: google.maps.LatLng) {
-    const properties = {};
-    feature.forEachProperty((value, key) => {
-      properties[key] = key === this._geoColumn ? truncateWKT(value) : value;
-    });
-    this.infoWindow.setContent(`<pre>${JSON.stringify(properties, null, 2)}</pre>`);
+  showInfoWindow (feature: GeoJSONFeature, latLng: google.maps.LatLng) {
+    this.infoWindow.setContent(`<pre>${JSON.stringify(feature.properties, null, 2)}</pre>`);
     this.infoWindow.open(this.map);
     this.infoWindow.setPosition(latLng);
   }
@@ -255,23 +282,8 @@ export class MapComponent implements AfterViewInit {
     const deck = this._deckInstance;
     deck.setProps({ viewState: { zoom, latitude, longitude } });
     if (deck.layerManager) {
-      // TODO(donmccurdy): This should be wrapped up in a public `.redraw()` API.
-      deck.animationLoop._setupFrame();
-      deck.animationLoop._updateCallbackData();
-      deck.animationLoop.onRender(deck.animationLoop.animationProps);
+      deck.animationLoop.redraw();
     }
-  }
-}
-
-function recursiveExtendBounds(geometry: any, callback: Function, self) {
-  if (geometry instanceof google.maps.LatLng) {
-    callback.call(self, geometry);
-  } else if (geometry instanceof google.maps.Data.Point) {
-    callback.call(self, geometry.get());
-  } else {
-    geometry.getArray().forEach((g) => {
-      recursiveExtendBounds(g, callback, self);
-    });
   }
 }
 
