@@ -139,8 +139,7 @@ export class MapComponent implements AfterViewInit {
     this._canvasEl.height = height;
 
     if (this._deckInstance) {
-      this._deckInstance.width = width;
-      this._deckInstance.height = height;
+      this._deckInstance.setProps({width, height});
     }
   }
 
