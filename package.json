@@ -10,8 +10,9 @@
     "test": "ng test",
     "lint": "ng lint",
     "predeploy": "npm run build",
+    "predeploy:dev": "npm run predeploy",
     "deploy": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project bigquerygeoviz --version prod",
-    "deploy:dev": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project google.com:donmccurdy --version bqmapper --no-promote"
+    "deploy:dev": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project google.com:donmccurdy --version bigquerygeoviz --no-promote"
   },
   "private": true,
   "dependencies": {
