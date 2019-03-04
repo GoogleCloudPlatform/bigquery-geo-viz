@@ -1,8 +1,79 @@
 @import '~@angular/material/theming';
 @include mat-core();
 
-$bqmapper-primary: mat-palette($mat-teal);
-$bqmapper-accent:  mat-palette($mat-blue, 500, 900, A100);
+// primary: #00539b
+// accent: #d3e9ef
+// white: #ffffff
+// grey: #e5e3df
+
+$primary: (
+    50: #e0eaf3,
+    100: #b3cbe1,
+    200: #80a9cd,
+    300: #4d87b9,
+    400: #266daa,
+    500: #00539b,
+    600: #004c93,
+    700: #004289,
+    800: #00397f,
+    900: #00296d,
+    A100: #d3e9ef,
+    A200: #d3e9ef,
+    A400: #d3e9ef,
+    A700: #d3e9ef,
+    contrast: (
+        50: $black-87-opacity,
+        100: $black-87-opacity,
+        200: $black-87-opacity,
+        300: $black-87-opacity,
+        400: $black-87-opacity,
+        500: white,
+        600: white,
+        700: white,
+        800: white,
+        900: white,
+        A100: $black-87-opacity,
+        A200: $black-87-opacity,
+        A400: $black-87-opacity,
+        A700: white,
+    )
+);
+
+$secondary: (
+    50: #d3e9ef,
+    100: #d3e9ef,
+    200: #d3e9ef,
+    300: #d3e9ef,
+    400: #d3e9ef,
+    500: #d3e9ef,
+    600: #d3e9ef,
+    700: #d3e9ef,
+    800: #d3e9ef,
+    900: #d3e9ef,
+    A100: #d3e9ef,
+    A200: #d3e9ef,
+    A400: #d3e9ef,
+    A700: #d3e9ef,
+    contrast: (
+        50: $black-87-opacity,
+        100: $black-87-opacity,
+        200: $black-87-opacity,
+        300: $black-87-opacity,
+        400: $black-87-opacity,
+        500: white,
+        600: white,
+        700: white,
+        800: white,
+        900: white,
+        A100: $black-87-opacity,
+        A200: $black-87-opacity,
+        A400: $black-87-opacity,
+        A700: white,
+    )
+);
+
+$bqmapper-primary: mat-palette($primary);
+$bqmapper-accent:  mat-palette($secondary, 500, 900, A100);
 $bqmapper-warn:    mat-palette($mat-red);
 
 $bqmapper-theme: mat-light-theme($bqmapper-primary, $bqmapper-accent, $bqmapper-warn);

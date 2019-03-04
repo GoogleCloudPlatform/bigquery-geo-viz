@@ -7,6 +7,11 @@
     font-size: 14px;
 }
 
+.header-logo {
+    height: 32px;
+    margin-right: 0.5em;
+}
+
 .flex-spacer {
     flex-grow: 1;
 }
@@ -27,7 +32,7 @@ mat-progress-spinner {
     position: fixed;
     bottom: 2em;
     left: 1em;
-    background: #159587;
+    background: #00539b;
     z-index: 10000;
 }
 
@@ -67,7 +72,7 @@ mat-progress-spinner {
     font-weight: 500;
     display: inline-block;
     padding: 0.5em;
-    color: #fff;
+    color: #ffffff;
     border-radius: 2px;
 }
 
@@ -76,12 +81,16 @@ mat-progress-spinner {
     flex-grow: 0;
 }
 
-.styles-prop-list .rule-badge.computed { background: #4285f4; }
+.styles-prop-list .rule-badge.computed { background: #00539b; }
 .styles-prop-list .rule-badge.global { background: #F4B400; }
-.styles-prop-list .rule-badge.none { background: #CCC; color: #000; }
+.styles-prop-list .rule-badge.none { background: #cccccc; color: #000000; }
 
 .mat-toolbar.mat-primary,
 .mat-raised-button.mat-primary,
 .mat-step-header .mat-step-icon {
     color: #FFFFFF;
+}
+
+.mat-raised-button[disabled] {
+    background: #e5e3df;
 }

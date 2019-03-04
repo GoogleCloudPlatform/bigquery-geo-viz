@@ -3,11 +3,3 @@ main {
     display: flex;
     flex-direction: column;
 }
-
-.header {
-    flex-shrink: 0;
-}
-
-.header-profile {
-    font-size: 0.8em;
-}
