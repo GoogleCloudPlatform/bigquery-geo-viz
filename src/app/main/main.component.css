@@ -83,7 +83,7 @@ mat-progress-spinner {
 
 .styles-prop-list .rule-badge.computed { background: #00539b; }
 .styles-prop-list .rule-badge.global { background: #F4B400; }
-.styles-prop-list .rule-badge.none { background: #cccccc; color: #000000; }
+.styles-prop-list .rule-badge.none { background: #e5e3df; color: #000000; }
 
 .mat-toolbar.mat-primary,
 .mat-raised-button.mat-primary,
