@@ -61,7 +61,7 @@ if ( environment.production ) {
     TermsComponent,
     RuleInputComponent,
     CodemirrorComponent,
-    FileSizePipe
+    FileSizePipe,
   ],
   imports: [
     BrowserModule,

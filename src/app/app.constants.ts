@@ -23,7 +23,7 @@ export const Step = {
 };
 
 // Maximum number of results to be returned by BigQuery API.
-export const MAX_RESULTS = 50000;
+export const MAX_RESULTS = 500000;
 
 // Maximum number of results to be shown in the HTML preview table.
 export const MAX_RESULTS_PREVIEW = 10;
@@ -42,7 +42,7 @@ export const SAMPLE_QUERY = `SELECT
   tree_dbh
 FROM \`bigquery-public-data.new_york_trees.tree_census_2015\`
 WHERE status = 'Alive'
-LIMIT ${MAX_RESULTS};`;
+LIMIT 50000;`;
 
 export const SAMPLE_FILL_OPACITY = {isComputed: false, value: 0.8};
 export const SAMPLE_FILL_COLOR = {
@@ -57,7 +57,7 @@ export const SAMPLE_CIRCLE_RADIUS = {
   property: 'tree_dbh',
   function: 'linear',
   domain: [0, 500],
-  range: [2, 12]
+  range: [10, 50]
 };
 
 export const PALETTES = Object.keys(colorbrewer).map((key) => colorbrewer[key]);

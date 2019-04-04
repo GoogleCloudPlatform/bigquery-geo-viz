@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, Renderer2, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Renderer2, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
@@ -39,7 +39,8 @@ const DEBOUNCE_MS = 1000;
 @Component({
   selector: 'app-main',
   templateUrl: './main.component.html',
-  styleUrls: ['./main.component.css']
+  styleUrls: ['./main.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';

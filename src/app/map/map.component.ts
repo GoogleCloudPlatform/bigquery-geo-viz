@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
 import { StylesService, StyleRule } from '../services/styles.service';
 import { Deck } from '@deck.gl/core';
 import { GeoJsonLayer } from '@deck.gl/layers';
@@ -30,7 +30,8 @@ const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
-  styleUrls: ['./map.component.css']
+  styleUrls: ['./map.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapComponent implements AfterViewInit {
   // DOM element for map.
@@ -111,6 +112,7 @@ export class MapComponent implements AfterViewInit {
     this._canvasEl.width = this.mapEl.nativeElement.clientWidth;
     this._canvasEl.height = this.mapEl.nativeElement.clientHeight;
     this._canvasEl.style.position = 'absolute'; // needed?
+
     this._deckInstance = new Deck({
       canvas: this._canvasEl,
       width: this._canvasEl.width,
@@ -162,10 +164,8 @@ export class MapComponent implements AfterViewInit {
 
     if (picked && this._hoveredFeature !== picked.object) {
       this._hoveredFeature = picked.object;
-      document.body.classList.add('cursor-pointer');
     } else if (!picked) {
       this._hoveredFeature = null;
-      document.body.classList.remove('cursor-pointer');
     }
   }
 
@@ -202,13 +202,10 @@ export class MapComponent implements AfterViewInit {
       pickable: true,
       autoHighlight: true,
       highlightColor: [219, 68, 55], // #DB4437
-      stroked: false,
+      stroked: this.hasStyle(this._styles, 'strokeWeight'),
       filled: true,
-      extruded: true,
-      pointRadiusScale: 5,
-      lineWidthScale: 20,
-      lineWidthMinPixels: 2,
-      elevationScale: 0.01,
+      extruded: false,
+      elevationScale: 0,
       getFillColor: (d) => {
         let color = this.getStyle(d, this._styles, 'fillColor');
         if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
@@ -221,8 +218,8 @@ export class MapComponent implements AfterViewInit {
         const opacity = this.getStyle(d, this._styles, 'strokeOpacity');
         return [...color, opacity * 256];
       },
-      getRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
       getLineWidth: (d) => this.getStyle(d, this._styles, 'strokeWeight'),
+      getRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
     });
 
     this._deckInstance.setProps({ layers: [layer] });
@@ -235,6 +232,18 @@ export class MapComponent implements AfterViewInit {
    */
   getStyle (feature, styles: StyleRule[], styleName: string) {
     return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
+  }
+
+  /**
+   * Returns whether the style is currently enabled.
+   * @param styles
+   * @param styleName
+   */
+  hasStyle (styles: StyleRule[], styleName: string): boolean {
+    const rule = styles[styleName];
+    if (!rule) return false;
+    if (!rule.isComputed) return !!rule.value || rule.value === '0';
+    return rule.property && rule.function;
   }
 
   /**

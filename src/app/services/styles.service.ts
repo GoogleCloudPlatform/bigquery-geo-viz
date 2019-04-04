@@ -32,7 +32,7 @@ const DEFAULT_STYLES = {
   strokeColor: [255, 0, 0],
   strokeOpacity: 1.0,
   strokeWeight: 1.0,
-  circleRadius: 5
+  circleRadius: 25
 };
 
 const parseNumber = Number;
