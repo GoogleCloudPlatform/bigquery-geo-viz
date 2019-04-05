@@ -40,7 +40,10 @@ const DEBOUNCE_MS = 1000;
   selector: 'app-main',
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  // TODO(donmccurdy): Enabling OnPush change detection dramatically improves
+  // the responsiveness of the app, but nontrivial refactoring is necessary to keep
+  // change detection working normally.
+  // changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';
