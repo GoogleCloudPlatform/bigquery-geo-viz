@@ -14,7 +14,7 @@
   <app-map [rows]="rows" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>
   <section class="drawer">
     <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" #stepper>
-      <mat-step [stepControl]="dataFormGroup" label="Select data">
+      <mat-step [stepControl]="dataFormGroup" label="Query">
 
         <button *ngIf="!isSignedIn" mat-raised-button color="primary" (click)="signin()">Authorize</button>
 
@@ -60,7 +60,7 @@
         </form>
       </mat-step>
 
-      <mat-step [stepControl]="schemaFormGroup" label="Define columns">
+      <mat-step [stepControl]="schemaFormGroup" label="Data">
         <div style="margin-bottom: 2em">
           <button mat-raised-button color="primary" matStepperNext>Add styles</button>
         </div>

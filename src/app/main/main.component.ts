@@ -212,9 +212,13 @@ export class MainComponent implements OnInit, OnDestroy {
     this._dryRun()
       .then((dryRunResponse) => {
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
+        const hasNonGeoColumns = geoColumns.length < dryRunResponse.schema.fields.length;
+        const nonGeoClause = hasNonGeoColumns
+          ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ') }),`
+          : '';
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
         const wrappedSQL = `SELECT
-            * EXCEPT(${ geoColumns.map((f) => `\`${f.name}\``).join(', ') }),
+            ${nonGeoClause}
             ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
           FROM (${sql.replace(/;\s*$/, '')});`;
         return this.dataService.query(projectID, wrappedSQL, location);
