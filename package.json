@@ -42,7 +42,6 @@
     "ngx-color-picker": "^5.3.8",
     "rxjs": "^5.5.2",
     "serve": "^10.0.2",
-    "wellknown": "^0.5.0",
     "zone.js": "^0.8.14"
   },
   "devDependencies": {

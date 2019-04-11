@@ -295,8 +295,3 @@ export class MapComponent implements AfterViewInit {
     }
   }
 }
-
-function truncateWKT(text: string): string {
-  text = String(text);
-  return text.length <= 100 ? text : text.substr(0, 100) + '…';
-}
