@@ -104,28 +104,19 @@ export class MapComponent implements AfterViewInit {
           this._deckLayer = new GoogleMapsOverlay({ layers: [] });
           this._deckLayer.setMap(this.map);
           this.map.addListener('click', (e) => this._onClick(e));
-          this.map.addListener('mousemove', (e) => this._onMousemove(e));
         });
       });
   }
 
   _onClick(e: google.maps.MouseEvent) {
+    // TODO(donmccurdy): Do we need a public API for determining when layer is ready?
+    if (!this._deckLayer._deck.layerManager) return;
+
     const { x, y } = e['pixel'];
     const picked = this._deckLayer.pickObject({ x, y, radius: 4 });
 
     if (picked) {
       this.showInfoWindow(picked.object, e.latLng);
-    }
-  }
-
-  _onMousemove(e: google.maps.MouseEvent) {
-    const { x, y } = e['pixel'];
-    const picked = this._deckLayer.pickObject({ x, y, radius: 0 });
-
-    if (picked && this._hoveredFeature !== picked.object) {
-      this._hoveredFeature = picked.object;
-    } else if (!picked) {
-      this._hoveredFeature = null;
     }
   }
 

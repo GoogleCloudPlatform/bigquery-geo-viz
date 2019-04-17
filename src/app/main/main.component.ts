@@ -215,7 +215,7 @@ export class MainComponent implements OnInit, OnDestroy {
         const wrappedSQL = `SELECT
             ${nonGeoClause}
             ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
-          FROM (${sql.replace(/;\s*$/, '')});`;
+          FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
         return this.dataService.query(projectID, wrappedSQL, location);
       })
       .then(({ columns, columnNames, rows, stats }) => {
