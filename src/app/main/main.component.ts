@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ChangeDetectionStrategy, Component, Renderer2, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
@@ -44,11 +44,7 @@ const DEBOUNCE_MS = 1000;
 @Component({
   selector: 'app-main',
   templateUrl: './main.component.html',
-  styleUrls: ['./main.component.css'],
-  // TODO(donmccurdy): Enabling OnPush change detection dramatically improves
-  // the responsiveness of the app, but nontrivial refactoring is necessary to keep
-  // change detection working normally.
-  // changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrls: ['./main.component.css']
 })
 export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';
@@ -93,7 +89,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
   constructor(
     private _formBuilder: FormBuilder,
-    private _renderer: Renderer2,
     private _snackbar: MatSnackBar,
     private _changeDetectorRef: ChangeDetectorRef,
     private _ngZone: NgZone) {

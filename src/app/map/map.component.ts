@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ChangeDetectionStrategy, Component, ElementRef, Input, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit } from '@angular/core';
 import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
@@ -30,8 +30,7 @@ const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
-  styleUrls: ['./map.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrls: ['./map.component.css']
 })
 export class MapComponent implements AfterViewInit {
   // DOM element for map.
@@ -77,7 +76,7 @@ export class MapComponent implements AfterViewInit {
     this.updateStyles();
   }
 
-  constructor () {
+  constructor(private _ngZone: NgZone) {
     this.pendingStyles = fetch('assets/basemap.json', {credentials: 'include'})
       .then((response) => response.json());
   }
@@ -88,19 +87,25 @@ export class MapComponent implements AfterViewInit {
   ngAfterViewInit() {
     Promise.all([ pendingMap, this.pendingStyles ])
       .then(([_, mapStyles]) => {
-        this.map = new google.maps.Map(this.mapEl.nativeElement, {
-          center: {lat: INITIAL_VIEW_STATE.latitude, lng: INITIAL_VIEW_STATE.longitude},
-          zoom: INITIAL_VIEW_STATE.zoom
+        // Initialize Maps API outside of the Angular zone. Maps API binds event listeners,
+        // and we do NOT want Angular to trigger change detection on these events. Ensuring
+        // that Maps API interaction doesn't trigger change detection improves performance.
+        // See: https://blog.angularindepth.com/boosting-performance-of-angular-applications-with-manual-change-detection-42cb396110fb
+        this._ngZone.runOutsideAngular(() => {
+          this.map = new google.maps.Map(this.mapEl.nativeElement, {
+            center: { lat: INITIAL_VIEW_STATE.latitude, lng: INITIAL_VIEW_STATE.longitude },
+            zoom: INITIAL_VIEW_STATE.zoom
+          });
+          this.map.setOptions({ styles: mapStyles });
+          this.infoWindow = new google.maps.InfoWindow({ content: '' });
+          this.map.data.addListener('click', (e) => {
+            this.showInfoWindow(e.feature, e.latLng);
+          });
+          this._deckLayer = new GoogleMapsOverlay({ layers: [] });
+          this._deckLayer.setMap(this.map);
+          this.map.addListener('click', (e) => this._onClick(e));
+          this.map.addListener('mousemove', (e) => this._onMousemove(e));
         });
-        this.map.setOptions({styles: mapStyles});
-        this.infoWindow = new google.maps.InfoWindow({content: ''});
-        this.map.data.addListener('click', (e) => {
-          this.showInfoWindow(e.feature, e.latLng);
-        });
-        this._deckLayer = new GoogleMapsOverlay({layers: []});
-        this._deckLayer.setMap(this.map);
-        this.map.addListener('click', (e) => this._onClick(e));
-        this.map.addListener('mousemove', (e) => this._onMousemove(e));
       });
   }
 
