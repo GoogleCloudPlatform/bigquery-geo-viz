@@ -23,8 +23,6 @@ import { GeoJSONService, GeoJSONFeature } from '../services/geojson.service';
 
 const LAYER_ID = 'geojson-layer';
 
-const TILE_SIZE = 256;
-
 const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 
 @Component({
@@ -52,9 +50,9 @@ export class MapComponent implements AfterViewInit {
   private _features: GeoJSONFeature[] = [];
   private _styles: StyleRule[] = [];
   private _geoColumn: string;
+  private _activeGeometryTypes = new Set<string>();
 
   private _deckLayer: GoogleMapsOverlay = null;
-  private _hoveredFeature: GeoJSONFeature = null;
 
   @Input()
   set rows(rows: object[]) {
@@ -128,6 +126,12 @@ export class MapComponent implements AfterViewInit {
 
     this._features = GeoJSONService.rowsToGeoJSON(this._rows, this._geoColumn);
 
+    // Note which types of geometry are being shown.
+    this._activeGeometryTypes.clear();
+    this._features.forEach((feature) => {
+      this._activeGeometryTypes.add(feature.geometry['type']);
+    });
+
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features: this._features});
     const bounds = new google.maps.LatLngBounds(
@@ -155,10 +159,12 @@ export class MapComponent implements AfterViewInit {
       pickable: true,
       autoHighlight: true,
       highlightColor: [219, 68, 55], // #DB4437
-      stroked: this.hasStyle(this._styles, 'strokeWeight'),
+      stroked: this.hasStroke(),
       filled: true,
       extruded: false,
       elevationScale: 0,
+      lineWidthUnits: 'pixels',
+      pointRadiusMinPixels: 1,
       getFillColor: (d) => {
         let color = this.getStyle(d, this._styles, 'fillColor');
         if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
@@ -197,6 +203,13 @@ export class MapComponent implements AfterViewInit {
     if (!rule) return false;
     if (!rule.isComputed) return !!rule.value || rule.value === '0';
     return rule.property && rule.function;
+  }
+
+  hasStroke () {
+    return this._activeGeometryTypes.has('LineString')
+      || this._activeGeometryTypes.has('MultiLineString')
+      || this._activeGeometryTypes.has('Polygon')
+      || this._activeGeometryTypes.has('MultiPolygon');
   }
 
   /**
