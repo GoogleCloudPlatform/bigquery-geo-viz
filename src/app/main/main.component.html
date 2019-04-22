@@ -6,9 +6,11 @@
        alt="BigQuery Geo Viz Logo">
   <span>BigQuery Geo Viz</span>
   <span class="flex-spacer"></span>
+  <a mat-button href="https://github.com/GoogleCloudPlatform/bigquery-geo-viz">Source code</a>
+  <a mat-button href="/terms">Terms &amp; privacy</a>
+  <span class="toolbar-divider">|</span>
   <span class="header-profile">{{ user?.getBasicProfile().getEmail() }}</span>
   <button *ngIf="isSignedIn" mat-button (click)="signout()">Sign out</button>
-  <a mat-button href="/terms">Terms &amp; Privacy</a>
 </mat-toolbar>
 <div class="view">
   <app-map [rows]="rows" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>

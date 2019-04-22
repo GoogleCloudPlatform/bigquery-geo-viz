@@ -17,6 +17,10 @@
     flex-grow: 1;
 }
 
+.toolbar-divider {
+    padding: 0 16px;
+}
+
 .drawer {
     max-width: 40vw;
     max-height: calc(100vh - 64px);
