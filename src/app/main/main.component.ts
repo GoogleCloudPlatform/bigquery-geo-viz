@@ -227,7 +227,15 @@ export class MainComponent implements OnInit, OnDestroy {
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
       })
       .catch((e) => {
-        this.showMessage(parseErrorMessage(e));
+        const error = e && e.result && e.result.error || {};
+        if (error.status === 'INVALID_ARGUMENT' && error.message.match(/^Unrecognized name: f\d+_/)) {
+          this.showMessage(
+            'Geography columns must provide a name. For example, "SELECT ST_GEOGPOINT(1,2)" could ' +
+            'be changed to "SELECT ST_GEOGPOINT(1,2) geo".'
+          );
+        } else {
+          this.showMessage(parseErrorMessage(e));
+        }
       })
       .then(() => {
         this.pending = false;
