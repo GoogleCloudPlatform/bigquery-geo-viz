@@ -5,6 +5,7 @@
 
 .header-profile {
     font-size: 14px;
+    padding: 0 16px;
 }
 
 .header-logo {
@@ -14,6 +15,10 @@
 
 .flex-spacer {
     flex-grow: 1;
+}
+
+.toolbar-divider {
+    padding: 0 16px;
 }
 
 .drawer {

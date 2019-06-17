@@ -37,6 +37,23 @@ export interface Project {
   id: string;
 }
 
+export interface BigQueryColumn {
+  name: string;
+  type: string;
+  mode: string;
+}
+
+export interface BigQuerySchema {
+  fields: BigQueryColumn[];
+}
+
+export interface BigQueryDryRunResponse {
+  ok: boolean;
+  totalBytesProcessed?: number;
+  statementType?: string;
+  schema?: BigQuerySchema;
+}
+
 export interface BigQueryResponse {
   error: string | undefined;
   columns: Array<Object> | undefined;
@@ -126,27 +143,31 @@ export class BigQueryService {
    * @param projectID
    * @param sql
    */
-  prequery(projectID: string, sql: string, location: string): Promise<number> {
-    const body = {
+  prequery(projectID: string, sql: string, location: string): Promise<BigQueryDryRunResponse> {
+    const configuration = {
       dryRun: true,
-      query: sql,
-      maxResults: MAX_RESULTS,
-      timeoutMs: TIMEOUT_MS,
-      useLegacySql: false
+      query: {
+        query: sql,
+        maxResults: MAX_RESULTS,
+        timeoutMs: TIMEOUT_MS,
+        useLegacySql: false
+      }
     };
-    if (location) { body['location'] = location; }
+    if (location) { configuration.query['location'] = location; }
     return gapi.client.request({
-      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
+      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs`,
       method: 'POST',
-      body: body
+      body: { configuration },
     }).then((response) => {
-      return Number( (response.result || {})['totalBytesProcessed'] || 0 );
+      const { schema, statementType } = response.result.statistics.query;
+      const totalBytesProcessed = Number(response.result.statistics.query.totalBytesProcessed);
+      return {ok: true, schema, statementType, totalBytesProcessed};
     }).catch((e) => {
       if (e && e.result && e.result.error) {
         throw new Error(e.result.error.message);
       }
       console.warn(e);
-      return -1;
+      return {ok: false};
     });
   }
 
@@ -161,7 +182,7 @@ export class BigQueryService {
     return gapi.client.request({
       path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
       method: 'POST',
-      body: body
+      body,
     }).then((response) => {
       const stats = new Map();
 

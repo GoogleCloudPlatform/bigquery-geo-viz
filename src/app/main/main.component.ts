@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, Renderer2, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
@@ -24,7 +24,12 @@ import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/map';
 
 import { StyleProps, StyleRule } from '../services/styles.service';
-import { BigQueryService, ColumnStat, Project } from '../services/bigquery.service';
+import {
+    BigQueryService,
+    ColumnStat,
+    Project,
+    BigQueryDryRunResponse
+} from '../services/bigquery.service';
 import {
   Step,
   SAMPLE_QUERY,
@@ -84,7 +89,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
   constructor(
     private _formBuilder: FormBuilder,
-    private _renderer: Renderer2,
     private _snackbar: MatSnackBar,
     private _changeDetectorRef: ChangeDetectorRef,
     private _ngZone: NgZone) {
@@ -128,6 +132,9 @@ export class MainComponent implements OnInit, OnDestroy {
     StyleProps.forEach((prop) => stylesGroupMap[prop.name] = this.createStyleFormGroup());
     this.stylesFormGroup = this._formBuilder.group(stylesGroupMap);
     this.stylesFormGroup.valueChanges.debounceTime(500).subscribe(() => this.updateStyles());
+
+    // Initialize default styles.
+    this.updateStyles();
   }
 
   ngOnDestroy() {
@@ -166,17 +173,27 @@ export class MainComponent implements OnInit, OnDestroy {
     this.cmDebouncer.next();
   }
 
-  _dryRun() {
+  _dryRun(): Promise<BigQueryDryRunResponse> {
     const { projectID, sql, location } = this.dataFormGroup.getRawValue();
-    this.dataService.prequery(projectID, sql, location)
-      .then((bytesProcessed) => {
-        this.bytesProcessed = bytesProcessed;
+    if (!projectID) return;
+    const dryRun = this.dataService.prequery(projectID, sql, location)
+      .then((response: BigQueryDryRunResponse) => {
+        if (!response.ok) throw new Error('Query analysis failed.');
+        const geoColumn = response.schema.fields.find((f) => f.type === 'GEOGRAPHY');
+        if (response.statementType !== 'SELECT') {
+          throw new Error('Expected a SELECT statement.');
+        } else if (!geoColumn) {
+          throw new Error('Expected a geography column, but found none.');
+        }
         this.lintMessage = '';
-      })
-      .catch((e) => {
-        this.bytesProcessed = -1;
-        this.lintMessage = parseErrorMessage(e);
+        this.bytesProcessed = response.totalBytesProcessed;
+        return response;
       });
+    dryRun.catch((e) => {
+      this.bytesProcessed = -1;
+      this.lintMessage = parseErrorMessage(e);
+    });
+    return dryRun;
   }
 
   query() {
@@ -185,16 +202,40 @@ export class MainComponent implements OnInit, OnDestroy {
 
     const { projectID, sql, location } = this.dataFormGroup.getRawValue();
 
-    this.dataService.query(projectID, sql, location)
+    let geoColumns;
+
+    this._dryRun()
+      .then((dryRunResponse) => {
+        geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
+        const hasNonGeoColumns = geoColumns.length < dryRunResponse.schema.fields.length;
+        const nonGeoClause = hasNonGeoColumns
+          ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ') }),`
+          : '';
+        // Wrap the user's SQL query, replacing geography columns with GeoJSON.
+        const wrappedSQL = `SELECT
+            ${nonGeoClause}
+            ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
+          FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
+        return this.dataService.query(projectID, wrappedSQL, location);
+      })
       .then(({ columns, columnNames, rows, stats }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.rows = rows;
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
+        this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
       })
       .catch((e) => {
-        this.showMessage(parseErrorMessage(e));
+        const error = e && e.result && e.result.error || {};
+        if (error.status === 'INVALID_ARGUMENT' && error.message.match(/^Unrecognized name: f\d+_/)) {
+          this.showMessage(
+            'Geography columns must provide a name. For example, "SELECT ST_GEOGPOINT(1,2)" could ' +
+            'be changed to "SELECT ST_GEOGPOINT(1,2) geo".'
+          );
+        } else {
+          this.showMessage(parseErrorMessage(e));
+        }
       })
       .then(() => {
         this.pending = false;
@@ -217,7 +258,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.dataFormGroup.patchValue({ sql: SAMPLE_QUERY });
         break;
       case Step.SCHEMA:
-        this.schemaFormGroup.patchValue({ geoColumn: 'WKT', latColumn: 'lat_avg', lngColumn: 'lng_avg' });
+        this.schemaFormGroup.patchValue({ geoColumn: 'WKT' });
         break;
       case Step.STYLE:
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, SAMPLE_FILL_COLOR.domain.length);

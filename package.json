@@ -10,8 +10,10 @@
     "test": "ng test",
     "lint": "ng lint",
     "predeploy": "npm run build",
+    "predeploy:beta": "npm run predeploy",
     "predeploy:dev": "npm run predeploy",
     "deploy": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project bigquerygeoviz --version prod",
+    "deploy:beta": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project bigquerygeoviz --version beta --no-promote",
     "deploy:dev": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project google.com:donmccurdy --version bigquerygeoviz --no-promote"
   },
   "private": true,
@@ -27,6 +29,10 @@
     "@angular/platform-browser": "^5.0.0",
     "@angular/platform-browser-dynamic": "^5.0.0",
     "@angular/router": "^5.0.0",
+    "@deck.gl/core": "^7.0.2",
+    "@deck.gl/google-maps": "^7.0.2",
+    "@deck.gl/layers": "^7.0.2",
+    "@turf/bbox": "^6.0.1",
     "@types/d3-scale": "^1.0.11",
     "@types/gapi": "0.0.35",
     "@types/googlemaps": "^3.29.2",
@@ -39,7 +45,6 @@
     "ngx-color-picker": "^5.3.8",
     "rxjs": "^5.5.2",
     "serve": "^10.0.2",
-    "wellknown": "^0.5.0",
     "zone.js": "^0.8.14"
   },
   "devDependencies": {
@@ -59,6 +64,7 @@
     "karma-coverage-istanbul-reporter": "^1.2.1",
     "karma-jasmine": "~1.1.0",
     "karma-jasmine-html-reporter": "^0.2.2",
+    "node-sass": "^4.12.0",
     "protractor": "^5.4.1",
     "ts-node": "~3.2.0",
     "tslint": "~5.7.0",

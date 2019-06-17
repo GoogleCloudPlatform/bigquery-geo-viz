@@ -27,12 +27,12 @@ export interface StyleRule {
 }
 
 const DEFAULT_STYLES = {
-  fillColor: '#ff0000',
+  fillColor: [255, 0, 0],
   fillOpacity: 1.0,
-  strokeColor: '#000000',
+  strokeColor: [255, 0, 0],
   strokeOpacity: 1.0,
   strokeWeight: 1.0,
-  circleRadius: 5
+  circleRadius: 25
 };
 
 const parseNumber = Number;
@@ -89,7 +89,7 @@ export const StyleProps: Array<StyleProp> = [
     type: 'number',
     parse: parseNumber,
     description: ''
-      + 'Radius of the circle representing a point, in pixels. For example, a "linear" function'
+      + 'Radius of the circle representing a point, in meters. For example, a "linear" function'
       + ' could be used to map numeric values to point sizes, creating a scatterplot style.'
     }
 ];
@@ -125,7 +125,7 @@ export const StyleFunctions = [
 export class StylesService {
   iconCache: Map<string, google.maps.Icon> = new Map();
   imageCache: Map<string, string> = new Map();
-  scaleCache: Map<Object, d3Scale.ScaleOrdinal<any, any> | d3Scale.ScaleLinear<number, any> | d3Scale.ScaleThreshold<number, any>>
+  scaleCache: Map<object, d3Scale.ScaleOrdinal<any, any> | d3Scale.ScaleLinear<number, any> | d3Scale.ScaleThreshold<number, any>>
     = new Map();
 
   constructor () {
@@ -136,7 +136,7 @@ export class StylesService {
     this.scaleCache.clear();
   }
 
-  parseStyle (propName: string, row: Object, rule: StyleRule) {
+  parseStyle (propName: string, row: object, rule: StyleRule) {
     const prop = StyleProps.find((p) => p.name === propName);
     let scale = this.scaleCache.get(rule);
 
