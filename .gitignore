@@ -42,4 +42,4 @@ testem.log
 Thumbs.db
 
 # Dev data
-sample_kml/
+assets/tmp/*
