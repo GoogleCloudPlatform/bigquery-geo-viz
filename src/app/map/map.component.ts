@@ -92,7 +92,8 @@ export class MapComponent implements AfterViewInit {
         this._ngZone.runOutsideAngular(() => {
           this.map = new google.maps.Map(this.mapEl.nativeElement, {
             center: { lat: INITIAL_VIEW_STATE.latitude, lng: INITIAL_VIEW_STATE.longitude },
-            zoom: INITIAL_VIEW_STATE.zoom
+            zoom: INITIAL_VIEW_STATE.zoom,
+            tilt: 0
           });
           this.map.setOptions({ styles: mapStyles });
           this.infoWindow = new google.maps.InfoWindow({ content: '' });
