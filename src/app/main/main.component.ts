@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
@@ -46,7 +47,7 @@ const DEBOUNCE_MS = 1000;
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.css']
 })
-export class MainComponent implements OnInit, OnDestroy {
+export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
 
@@ -64,6 +65,9 @@ export class MainComponent implements OnInit, OnDestroy {
   // BigQuery response data
   columns: Array<Object>;
   columnNames: Array<string>;
+  project: String = '';
+  dataset: String = '';
+  table: String = '';
   bytesProcessed: Number = 0;
   lintMessage: String = '';
   pending = false;
@@ -91,6 +95,7 @@ export class MainComponent implements OnInit, OnDestroy {
     private _formBuilder: FormBuilder,
     private _snackbar: MatSnackBar,
     private _changeDetectorRef: ChangeDetectorRef,
+    private _route: ActivatedRoute,
     private _ngZone: NgZone) {
 
     // Debounce CodeMirror change events to avoid running extra dry runs.
@@ -109,9 +114,13 @@ export class MainComponent implements OnInit, OnDestroy {
     this.columnNames = [];
     this.rows = [];
 
+    this.project = this._route.snapshot.paramMap.get("project")
+    this.dataset = this.route.snapshot.paramMap.get("dataset")
+    this.table = this.route.snapshot.paramMap.get("table")
+
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
-      projectID: ['', Validators.required],
+      projectID: [this.project, Validators.required],
       sql: ['', Validators.required],
       location: [''],
     });
@@ -135,6 +144,12 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Initialize default styles.
     this.updateStyles();
+  }
+
+  ngAfterViewInit() {
+    setTimeout( () => {
+        this.dataFormGroup.patchValue({ sql: "SELECT * FROM `" + this.project + "." + this.dataset + "." + this.table + "`"});
+    },0)
   }
 
   ngOnDestroy() {

@@ -25,5 +25,14 @@ export const routes: Routes = [
   {
     path: 'terms',
     component: TermsComponent
+  },
+  {
+    path: 'initWithQuery',
+    children: [
+      {
+        path: ':project/:dataset/:table',
+        component: MainComponent
+      }
+    ]
   }
 ];
