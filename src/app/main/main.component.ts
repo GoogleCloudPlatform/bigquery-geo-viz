@@ -115,8 +115,8 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
     this.rows = [];
 
     this.project = this._route.snapshot.paramMap.get("project")
-    this.dataset = this.route.snapshot.paramMap.get("dataset")
-    this.table = this.route.snapshot.paramMap.get("table")
+    this.dataset = this._route.snapshot.paramMap.get("dataset")
+    this.table = this._route.snapshot.paramMap.get("table")
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({

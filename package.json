@@ -36,6 +36,7 @@
     "@types/d3-scale": "^1.0.11",
     "@types/gapi": "0.0.35",
     "@types/googlemaps": "^3.29.2",
+    "codemirror": "^5.34.0",
     "colorbrewer": "^1.1.0",
     "core-js": "^2.4.1",
     "d3-color": "^1.0.3",
