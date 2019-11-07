@@ -50,6 +50,9 @@ const DEBOUNCE_MS = 1000;
 export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
+  readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9-]*$', 'i');
+  readonly datasetIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
+  readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
 
   // GCP session data
   readonly dataService = new BigQueryService();
@@ -120,7 +123,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
-      projectID: [this.project, Validators.required],
+      projectID: ['', Validators.required],
       sql: ['', Validators.required],
       location: [''],
     });
@@ -147,10 +150,23 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   }
 
   ngAfterViewInit() {
-    setTimeout( () => {
-        this.dataFormGroup.patchValue({ sql: "SELECT * FROM `" + this.project + "." + this.dataset + "." + this.table + "`"});
-    },0)
+    if (this._hasParams()) {
+      if (this._paramsValid()) {
+        setTimeout(() => {
+          this._ngZone.run(() => {
+            this.dataFormGroup.patchValue({
+              sql: 'SELECT * FROM `' + this.project + '.' + this.dataset + '.' +
+                  this.table + '`',
+                  projectID: this.project
+            });
+          });
+        }, 0)
+      } else {
+        console.warn('Invalid project, dataset and table parameters')
+      }
+    }
   }
+
 
   ngOnDestroy() {
     this.cmDebouncerSub.unsubscribe();
@@ -186,6 +202,28 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
 
   dryRun() {
     this.cmDebouncer.next();
+  }
+
+  _hasParams() : boolean {
+    if (!this.project || this.project.length == 0) {
+      return false;
+    }
+    if (!this.project || this.project.length == 0) {
+      return false;
+    }
+    if (!this.project || this.project.length == 0) {
+      return false;
+    }
+    return true;
+  }
+
+  _paramsValid(): boolean {
+    if (this.project.match(this.projectIDRegExp) &&
+        this.dataset.match(this.datasetIDRegExp) &&
+        this.table.match(this.tableIDRegExp)) {
+      return true;
+    }
+    return false;
   }
 
   _dryRun(): Promise<BigQueryDryRunResponse> {

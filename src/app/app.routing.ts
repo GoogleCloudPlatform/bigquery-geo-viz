@@ -27,10 +27,10 @@ export const routes: Routes = [
     component: TermsComponent
   },
   {
-    path: 'initWithQuery',
+    path: 'project',
     children: [
       {
-        path: ':project/:dataset/:table',
+        path: ':project/dataset/:dataset/table/:table',
         component: MainComponent
       }
     ]
