@@ -16,6 +16,7 @@
 
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CodemirrorModule } from 'ng2-codemirror';
 import { NgModule, enableProdMode } from '@angular/core';
 
 import { routes } from './app.routing';
@@ -43,7 +44,6 @@ import { MainComponent } from './main/main.component';
 import { MapComponent } from './map/map.component';
 import { TermsComponent } from './terms/terms.component';
 import { RuleInputComponent } from './rule/rule.component';
-import { CodemirrorComponent } from '../../third_party/ng2-codemirror/codemirror.component';
 import { FileSizePipe } from './file-size.pipe';
 import { environment } from '../environments/environment';
 
@@ -60,12 +60,12 @@ if ( environment.production ) {
     MapComponent,
     TermsComponent,
     RuleInputComponent,
-    CodemirrorComponent,
     FileSizePipe,
   ],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
+    CodemirrorModule,
 
     RouterModule.forRoot(routes),
 

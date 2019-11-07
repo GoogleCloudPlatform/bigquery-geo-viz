@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
@@ -46,9 +47,12 @@ const DEBOUNCE_MS = 1000;
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.css']
 })
-export class MainComponent implements OnInit, OnDestroy {
+export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
+  readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9-]*$', 'i');
+  readonly datasetIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
+  readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
 
   // GCP session data
   readonly dataService = new BigQueryService();
@@ -64,6 +68,9 @@ export class MainComponent implements OnInit, OnDestroy {
   // BigQuery response data
   columns: Array<Object>;
   columnNames: Array<string>;
+  project: String = '';
+  dataset: String = '';
+  table: String = '';
   bytesProcessed: Number = 0;
   lintMessage: String = '';
   pending = false;
@@ -91,6 +98,7 @@ export class MainComponent implements OnInit, OnDestroy {
     private _formBuilder: FormBuilder,
     private _snackbar: MatSnackBar,
     private _changeDetectorRef: ChangeDetectorRef,
+    private _route: ActivatedRoute,
     private _ngZone: NgZone) {
 
     // Debounce CodeMirror change events to avoid running extra dry runs.
@@ -108,6 +116,10 @@ export class MainComponent implements OnInit, OnDestroy {
     this.columns = [];
     this.columnNames = [];
     this.rows = [];
+
+    this.project = this._route.snapshot.paramMap.get("project")
+    this.dataset = this._route.snapshot.paramMap.get("dataset")
+    this.table = this._route.snapshot.paramMap.get("table")
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
@@ -136,6 +148,25 @@ export class MainComponent implements OnInit, OnDestroy {
     // Initialize default styles.
     this.updateStyles();
   }
+
+  ngAfterViewInit() {
+    if (this._hasParams()) {
+      if (this._paramsValid()) {
+        setTimeout(() => {
+          this._ngZone.run(() => {
+            this.dataFormGroup.patchValue({
+              sql: 'SELECT * FROM `' + this.project + '.' + this.dataset + '.' +
+                  this.table + '`',
+                  projectID: this.project
+            });
+          });
+        }, 0)
+      } else {
+        console.warn('Invalid project, dataset and table parameters')
+      }
+    }
+  }
+
 
   ngOnDestroy() {
     this.cmDebouncerSub.unsubscribe();
@@ -171,6 +202,28 @@ export class MainComponent implements OnInit, OnDestroy {
 
   dryRun() {
     this.cmDebouncer.next();
+  }
+
+  _hasParams() : boolean {
+    if (!this.project || this.project.length == 0) {
+      return false;
+    }
+    if (!this.project || this.project.length == 0) {
+      return false;
+    }
+    if (!this.project || this.project.length == 0) {
+      return false;
+    }
+    return true;
+  }
+
+  _paramsValid(): boolean {
+    if (this.project.match(this.projectIDRegExp) &&
+        this.dataset.match(this.datasetIDRegExp) &&
+        this.table.match(this.tableIDRegExp)) {
+      return true;
+    }
+    return false;
   }
 
   _dryRun(): Promise<BigQueryDryRunResponse> {

@@ -25,5 +25,14 @@ export const routes: Routes = [
   {
     path: 'terms',
     component: TermsComponent
+  },
+  {
+    path: 'project',
+    children: [
+      {
+        path: ':project/dataset/:dataset/table/:table',
+        component: MainComponent
+      }
+    ]
   }
 ];
