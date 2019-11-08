@@ -71,7 +71,7 @@
           <mat-form-field class="wide">
             <mat-select placeholder="Geometry column" formControlName="geoColumn" ([ngModel])="model" matTooltip="Select field containing WKT-formatted geometry"
               matTooltipPosition="after">
-              <mat-option *ngFor="let column of columnNames" [value]="column">{{ column }}</mat-option>
+              <mat-option *ngFor="let column of geoColumnNames" [value]="column">{{ column }}</mat-option>
             </mat-select>
           </mat-form-field>
           <mat-table *ngIf="data" [dataSource]="data" class="result-table">

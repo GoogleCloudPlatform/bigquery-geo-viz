@@ -68,6 +68,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   // BigQuery response data
   columns: Array<Object>;
   columnNames: Array<string>;
+  geoColumnNames: Array<string>;
   project = '';
   dataset = '';
   table = '';
@@ -115,6 +116,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   ngOnInit() {
     this.columns = [];
     this.columnNames = [];
+    this.geoColumnNames = [];
     this.rows = [];
 
     this.project = this._route.snapshot.paramMap.get("project")
@@ -265,6 +267,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
       .then(({ columns, columnNames, rows, stats }) => {
         this.columns = columns;
         this.columnNames = columnNames;
+        this.geoColumnNames = geoColumns.map((f) => f.name)
         this.rows = rows;
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
