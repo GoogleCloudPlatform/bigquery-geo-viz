@@ -51,7 +51,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
   readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
-  readonly datasetIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
+  readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
 
   // GCP session data
