@@ -24,6 +24,13 @@ handlers:
   http_headers:
     X-Frame-Options: DENY
 
+- url: /project/(.*)
+  secure: always
+  static_files: index.html
+  upload: index.html
+  http_headers:
+    X-Frame-Options: DENY
+
 - url: /terms
   secure: always
   static_files: index.html

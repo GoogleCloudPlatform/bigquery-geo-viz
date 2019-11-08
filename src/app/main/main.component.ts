@@ -50,8 +50,8 @@ const DEBOUNCE_MS = 1000;
 export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
-  readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9-]*$', 'i');
-  readonly datasetIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
+  readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
+  readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
 
   // GCP session data
@@ -68,11 +68,11 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   // BigQuery response data
   columns: Array<Object>;
   columnNames: Array<string>;
-  project: String = '';
-  dataset: String = '';
-  table: String = '';
+  project = '';
+  dataset = '';
+  table = '';
   bytesProcessed: Number = 0;
-  lintMessage: String = '';
+  lintMessage = '';
   pending = false;
   rows: Array<Object>;
   data: MatTableDataSource<Object>;
@@ -150,23 +150,26 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   }
 
   ngAfterViewInit() {
-    if (this._hasParams()) {
-      if (this._paramsValid()) {
-        setTimeout(() => {
-          this._ngZone.run(() => {
-            this.dataFormGroup.patchValue({
-              sql: 'SELECT * FROM `' + this.project + '.' + this.dataset + '.' +
-                  this.table + '`',
-                  projectID: this.project
-            });
-          });
-        }, 0)
-      } else {
-        console.warn('Invalid project, dataset and table parameters')
-      }
-    }
-  }
+    // Skip initialization if there are no query parameters.
+    if (!this._hasParams()) { return; }
 
+    // Abort if query parameters fail validation.
+    if (!this._paramsValid()) {
+      console.warn('Invalid project, dataset and table parameters')
+      return;
+    }
+
+    // Initialize SQL and Project ID from query parameters.
+    // TODO(donmccurdy): Understand why timeout is necessary, and try to fix.
+    setTimeout(() => {
+      this._ngZone.run(() => {
+        this.dataFormGroup.patchValue({
+          sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
+          projectID: this.project
+        });
+      });
+    }, 0);
+  }
 
   ngOnDestroy() {
     this.cmDebouncerSub.unsubscribe();
@@ -205,25 +208,13 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   }
 
   _hasParams() : boolean {
-    if (!this.project || this.project.length == 0) {
-      return false;
-    }
-    if (!this.project || this.project.length == 0) {
-      return false;
-    }
-    if (!this.project || this.project.length == 0) {
-      return false;
-    }
-    return true;
+    return !!(this.project && this.dataset && this.table);
   }
 
   _paramsValid(): boolean {
-    if (this.project.match(this.projectIDRegExp) &&
-        this.dataset.match(this.datasetIDRegExp) &&
-        this.table.match(this.tableIDRegExp)) {
-      return true;
-    }
-    return false;
+    return this.projectIDRegExp.test(this.project) &&
+      this.datasetIDRegExp.test(this.dataset) &&
+      this.tableIDRegExp.test(this.table);
   }
 
   _dryRun(): Promise<BigQueryDryRunResponse> {
