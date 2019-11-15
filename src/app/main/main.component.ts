@@ -76,9 +76,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   lintMessage = '';
   pending = false;
   rows: Array<Object>;
+  totalRows: number;
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
-  hasMoreRows = false;
 
   // UI state
   stepIndex: Number = 0;
@@ -265,7 +265,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
           FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
         return this.dataService.query(projectID, wrappedSQL, location);
       })
-      .then(({ columns, columnNames, rows, stats, hasMoreRows }) => {
+      .then(({ columns, columnNames, rows, stats, totalRows }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name)
@@ -273,7 +273,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
-        this.hasMoreRows = hasMoreRows;
+        this.totalRows = totalRows;
       })
       .catch((e) => {
         const error = e && e.result && e.result.error || {};

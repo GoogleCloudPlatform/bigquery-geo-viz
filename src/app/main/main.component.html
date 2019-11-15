@@ -37,8 +37,11 @@
             <button mat-raised-button color="primary" (click)="query(stepper)" [disabled]="!dataFormGroup.valid || pending">Run</button>
             <button mat-raised-button color="primary" matStepperNext [disabled]="!rows.length || pending">See results</button>
             <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
-            <span *ngIf="!pending && !hasMoreRows" class="num-results-text">{{ rows.length }} results.</span>
-            <span *ngIf="!pending && hasMoreRows" class="num-results-text"> Max results reached. {{ rows.length }} results shown.</span>
+            <span *ngIf="!pending" class="num-results-text">
+              {{ rows.length | number }}
+              <span *ngIf="rows.length !== totalRows">of {{ totalRows | number }}</span>
+              results.
+            </span>
             <p class="sql-cost" *ngIf="bytesProcessed >= 0">
               Estimated query size: {{ bytesProcessed | fileSize:1 }}
             </p>
