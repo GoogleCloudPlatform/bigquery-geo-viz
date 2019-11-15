@@ -52,6 +52,17 @@ mat-progress-spinner {
     color: crimson;
 }
 
+.results-too-large {
+    color: #888;
+    font-weight: bold;
+    font-size: 0.8em;
+}
+
+.results-fit {
+    color: #888;
+    font-size: 0.8em;
+}
+
 .sql-cost {
     color: #888;
     font-size: 0.8em;
