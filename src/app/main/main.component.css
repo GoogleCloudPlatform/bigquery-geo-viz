@@ -62,6 +62,10 @@ mat-progress-spinner {
     display: block;
 }
 
+.num-results-text {
+    font-size: 0.8em;
+}
+
 .result-table {
     overflow-x: auto;
 }
