@@ -37,8 +37,8 @@
             <button mat-raised-button color="primary" (click)="query(stepper)" [disabled]="!dataFormGroup.valid || pending">Run</button>
             <button mat-raised-button color="primary" matStepperNext [disabled]="!rows.length || pending">See results</button>
             <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
-	    <span *ngIf="!pending && !hasMoreRows" class="results-fit">Showing {{ rows.length }} results.</span>
-	    <span *ngIf="!pending && hasMoreRows" class="results-too-large"> Not showing all the results. {{ rows.length }} rows fetched.</span>
+            <span *ngIf="!pending && !hasMoreRows" class="results-fit">Showing {{ rows.length }} results.</span>
+            <span *ngIf="!pending && hasMoreRows" class="results-too-large"> Not showing all the results. {{ rows.length }} rows fetched.</span>
             <p class="sql-cost" *ngIf="bytesProcessed >= 0">
               Estimated query size: {{ bytesProcessed | fileSize:1 }}
             </p>
