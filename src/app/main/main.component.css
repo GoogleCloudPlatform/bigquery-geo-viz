@@ -52,7 +52,7 @@ mat-progress-spinner {
     color: crimson;
 }
 
-.sql-cost {
+.sql-caption {
     color: #888;
     font-size: 0.8em;
 }
@@ -60,10 +60,6 @@ mat-progress-spinner {
 .sql-location {
     margin-top: 1em;
     display: block;
-}
-
-.num-results-text {
-    font-size: 0.8em;
 }
 
 .result-table {
