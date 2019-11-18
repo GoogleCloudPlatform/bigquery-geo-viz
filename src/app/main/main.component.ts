@@ -81,6 +81,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   maxRows: number = MAX_RESULTS;
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
+  hasMoreRows = false;
 
   // UI state
   stepIndex: Number = 0;

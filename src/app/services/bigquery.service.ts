@@ -61,6 +61,7 @@ export interface BigQueryResponse {
   rows: Array<Object> | undefined;
   totalRows : number;
   stats: Map<String, ColumnStat> | undefined;
+  hasMoreRows : boolean;
 }
 
 /**
