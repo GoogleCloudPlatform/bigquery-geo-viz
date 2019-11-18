@@ -59,6 +59,7 @@ export interface BigQueryResponse {
   columns: Array<Object> | undefined;
   columnNames: Array<string> | undefined;
   rows: Array<Object> | undefined;
+  totalRows : number;
   stats: Map<String, ColumnStat> | undefined;
   hasMoreRows : boolean;
 }
@@ -230,11 +231,9 @@ export class BigQueryService {
         throw new Error('No results.');
       }
 
-      let hasMoreRows = false;
-      if (response.result.pageToken) {
-        hasMoreRows = true;
-      }
-      return {columns, columnNames, rows, stats, hasMoreRows} as BigQueryResponse;
+      const totalRows = Number(response.result.totalRows);
+
+      return {columns, columnNames, rows, stats, totalRows} as BigQueryResponse;
     });
   }
 }

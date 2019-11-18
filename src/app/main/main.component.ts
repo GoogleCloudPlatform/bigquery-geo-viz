@@ -37,7 +37,8 @@ import {
   SAMPLE_FILL_COLOR,
   SAMPLE_FILL_OPACITY,
   MAX_RESULTS_PREVIEW,
-  SAMPLE_CIRCLE_RADIUS
+  SAMPLE_CIRCLE_RADIUS,
+  MAX_RESULTS
 } from '../app.constants';
 
 const DEBOUNCE_MS = 1000;
@@ -72,10 +73,12 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   project = '';
   dataset = '';
   table = '';
-  bytesProcessed: Number = 0;
+  bytesProcessed: number = 0;
   lintMessage = '';
   pending = false;
   rows: Array<Object>;
+  totalRows: number = 0;
+  maxRows: number = MAX_RESULTS;
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
   hasMoreRows = false;
@@ -265,7 +268,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
           FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
         return this.dataService.query(projectID, wrappedSQL, location);
       })
-      .then(({ columns, columnNames, rows, stats, hasMoreRows }) => {
+      .then(({ columns, columnNames, rows, stats, totalRows }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name)
@@ -273,7 +276,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
-        this.hasMoreRows = hasMoreRows;
+        this.totalRows = totalRows;
       })
       .catch((e) => {
         const error = e && e.result && e.result.error || {};

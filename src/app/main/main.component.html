@@ -35,17 +35,22 @@
 
           <div>
             <button mat-raised-button color="primary" (click)="query(stepper)" [disabled]="!dataFormGroup.valid || pending">Run</button>
-            <button mat-raised-button color="primary" matStepperNext [disabled]="!rows.length || pending">See results</button>
+            <button mat-raised-button color="primary"
+                    matStepperNext
+                    [disabled]="!rows.length || pending"
+                    matTooltip="Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit."
+                    matTooltipPosition="after">
+                Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of {{ totalRows | number }}</span>)
+            </button>
             <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
-            <span *ngIf="!pending && !hasMoreRows" class="num-results-text">{{ rows.length }} results.</span>
-            <span *ngIf="!pending && hasMoreRows" class="num-results-text"> Max results reached. {{ rows.length }} results shown.</span>
-            <p class="sql-cost" *ngIf="bytesProcessed >= 0">
+            <p class="sql-caption" *ngIf="bytesProcessed >= 0">
               Estimated query size: {{ bytesProcessed | fileSize:1 }}
             </p>
             <p *ngIf="lintMessage" class="sql-lint">{{ lintMessage }}</p>
             <mat-form-field class="wide sql-location">
-              <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model" matTooltip="Select processing location."
-                matTooltipPosition="after">
+              <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model"
+                          matTooltip="Select processing location."
+                          matTooltipPosition="after">
                 <mat-option value="">Auto-select</mat-option>
                 <mat-option value="US">United States (US)</mat-option>
                 <mat-option value="EU">European Union (EU)</mat-option>
