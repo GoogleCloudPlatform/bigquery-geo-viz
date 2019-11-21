@@ -38,7 +38,8 @@
             <button mat-raised-button color="primary"
                     matStepperNext
                     [disabled]="!rows.length || pending"
-                    matTooltip="Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit."
+                    [matTooltip]="rows.length !== totalRows ? 'Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit.'
+                                                            : null"
                     matTooltipPosition="after">
                 Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of {{ totalRows | number }}</span>)
             </button>
