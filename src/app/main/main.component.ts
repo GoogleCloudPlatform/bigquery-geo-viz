@@ -82,6 +82,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
   hasMoreRows = false;
+  SideNavOpened: boolean = true;
 
   // UI state
   stepIndex: Number = 0;

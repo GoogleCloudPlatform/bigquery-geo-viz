@@ -22,10 +22,20 @@
 }
 
 .drawer {
-    max-width: 40vw;
+    max-width: 30vw;
     max-height: calc(100vh - 64px);
     overflow: auto;
     flex-shrink: 0;
+}
+
+.sidenav-container {
+    position: fixed;
+    left: 0;
+    right: 0;
+}
+
+.stepper {
+    max-width: 100%;
 }
 
 mat-progress-spinner {
@@ -36,7 +46,15 @@ mat-progress-spinner {
 .preset-button {
     position: fixed;
     bottom: 2em;
-    left: 1em;
+    left: 6em;
+    background: #00539b;
+    z-index: 10000;
+}
+
+.toggle-button {
+    position: fixed;
+    bottom: 2em;
+    left: 2em;
     background: #00539b;
     z-index: 10000;
 }
