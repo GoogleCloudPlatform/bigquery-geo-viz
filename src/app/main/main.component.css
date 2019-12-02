@@ -22,7 +22,7 @@
 }
 
 .drawer {
-    max-width: 30vw;
+    max-width: 600px;
     max-height: calc(100vh - 64px);
     overflow: auto;
     flex-shrink: 0;
