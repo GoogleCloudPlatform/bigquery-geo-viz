@@ -25,7 +25,7 @@
     <mat-sidenav-content>
       <app-map [rows]="rows" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>
     </mat-sidenav-content>
-    <mat-sidenav #sidenav mode="side" poistion="start" [(opened)]="sideNavOpened">
+    <mat-sidenav #sidenav mode="side" position="start" [(opened)]="sideNavOpened">
       <section class="drawer">
         <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" #stepper class="stepper">
           <mat-step [stepControl]="dataFormGroup" label="Query">
