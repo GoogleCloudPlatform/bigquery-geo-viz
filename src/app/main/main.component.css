@@ -36,6 +36,8 @@
 
 .stepper {
     max-width: 100%;
+    overflow: auto;
+    flex-shrink: 0;  
 }
 
 mat-progress-spinner {
