@@ -1,4 +1,10 @@
 <mat-toolbar color="primary" class="header">
+  <button mat-icon-button (click)="sidenav.toggle()" class="toggle-button" color="primary">
+    <mat-icon aria-label="Toggle Sidenav">
+      <img src="https://www.gstatic.com/images/icons/material/system/1x/vertical_split_white_24dp.png" srcset="https://www.gstatic.com/images/icons/material/system/1x/vertical_split_white_24dp.png 1x,
+                     https://www.gstatic.com/images/icons/material/system/2x/vertical_split_white_24dp.png 2x" alt="toggle sidenav">
+    </mat-icon>
+  </button>
   <img class="header-logo"
        src="assets/ic_logo@2X.png"
        srcset="assets/ic_logo.png 1x,
@@ -13,111 +19,118 @@
   <span class="header-profile">{{ user?.getBasicProfile().getEmail() }}</span>
   <button *ngIf="isSignedIn" mat-button (click)="signout()">Sign out</button>
 </mat-toolbar>
+
 <div class="view">
-  <app-map [rows]="rows" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>
-  <section class="drawer">
-    <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" #stepper>
-      <mat-step [stepControl]="dataFormGroup" label="Query">
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav-content>
+      <app-map [rows]="rows" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>
+    </mat-sidenav-content>
+    <mat-sidenav #sidenav mode="side" position="start" [(opened)]="sideNavOpened">
+      <section class="drawer">
+        <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" #stepper class="stepper">
+          <mat-step [stepControl]="dataFormGroup" label="Query">
 
-        <button *ngIf="!isSignedIn" mat-raised-button color="primary" (click)="signin()">Authorize</button>
+            <button *ngIf="!isSignedIn" mat-raised-button color="primary" (click)="signin()">Authorize</button>
 
-        <form *ngIf="isSignedIn" [formGroup]="dataFormGroup">
-          <mat-form-field class="sql-form-field">
-            <input type="text" placeholder="Project ID" matInput formControlName="projectID" ([ngModel])="model" [matAutocomplete]="auto">
-            <mat-autocomplete #auto="matAutocomplete">
-              <mat-option *ngFor="let project of matchingProjects" [value]="project.id">
-                {{ project.id }}
-              </mat-option>
-            </mat-autocomplete>
-          </mat-form-field>
+            <form *ngIf="isSignedIn" [formGroup]="dataFormGroup">
+              <mat-form-field class="sql-form-field">
+                <input type="text" placeholder="Project ID" matInput formControlName="projectID" ([ngModel])="model" [matAutocomplete]="auto">
+                <mat-autocomplete #auto="matAutocomplete">
+                  <mat-option *ngFor="let project of matchingProjects" [value]="project.id">
+                    {{ project.id }}
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
 
-          <codemirror ref="codemirror" formControlName="sql" ([ngModel])="model" [config]="cmConfig" (change)="dryRun()" (query)="query()"></codemirror>
+              <codemirror ref="codemirror" formControlName="sql" ([ngModel])="model" [config]="cmConfig" (change)="dryRun()" (query)="query()"></codemirror>
 
-          <div>
-            <button mat-raised-button color="primary" (click)="query(stepper)" [disabled]="!dataFormGroup.valid || pending">Run</button>
-            <button mat-raised-button color="primary"
-                    matStepperNext
-                    [disabled]="!rows.length || pending"
-                    [matTooltip]="rows.length !== totalRows ? 'Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit.'
-                                                            : null"
-                    matTooltipPosition="after">
-                Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of {{ totalRows | number }}</span>)
-            </button>
-            <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
-            <p class="sql-caption" *ngIf="bytesProcessed >= 0">
-              Estimated query size: {{ bytesProcessed | fileSize:1 }}
-            </p>
-            <p *ngIf="lintMessage" class="sql-lint">{{ lintMessage }}</p>
-            <mat-form-field class="wide sql-location">
-              <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model"
-                          matTooltip="Select processing location."
-                          matTooltipPosition="after">
-                <mat-option value="">Auto-select</mat-option>
-                <mat-option value="US">United States (US)</mat-option>
-                <mat-option value="EU">European Union (EU)</mat-option>
-                <mat-option value="us-east4">Northern Virginia (us-east4)</mat-option>
-                <mat-option value="northamerica-northeast1">Montréal (northamerica-northeast1)</mat-option>
-                <mat-option value="europe-west2">London (europe-west2)</mat-option>
-                <mat-option value="europe-north1">Finland (europe-north1)</mat-option>
-                <mat-option value="asia-south1">Mumbai (asia-south1)</mat-option>
-                <mat-option value="asia-southeast1">Singapore (asia-southeast1)</mat-option>
-                <mat-option value="asia-east1">Taiwan (asia-east1)</mat-option>
-                <mat-option value="asia-northeast1">Tokyo (asia-northeast1)</mat-option>
-                <mat-option value="australia-southeast1">Sydney (australia-southeast1)</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </form>
-      </mat-step>
+              <div>
+                <button mat-raised-button color="primary" (click)="query(stepper)" [disabled]="!dataFormGroup.valid || pending">Run</button>
+                <button mat-raised-button color="primary"
+                        matStepperNext
+                        [disabled]="!rows.length || pending"
+                        [matTooltip]="rows.length !== totalRows ? 'Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit.'
+                                                                : null"
+                        matTooltipPosition="after">
+                    Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of {{ totalRows | number }}</span>)
+                </button>
+                <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
+                <p class="sql-caption" *ngIf="bytesProcessed >= 0">
+                  Estimated query size: {{ bytesProcessed | fileSize:1 }}
+                </p>
+                <p *ngIf="lintMessage" class="sql-lint">{{ lintMessage }}</p>
+                <mat-form-field class="wide sql-location">
+                  <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model"
+                              matTooltip="Select processing location."
+                              matTooltipPosition="after">
+                    <mat-option value="">Auto-select</mat-option>
+                    <mat-option value="US">United States (US)</mat-option>
+                    <mat-option value="EU">European Union (EU)</mat-option>
+                    <mat-option value="us-east4">Northern Virginia (us-east4)</mat-option>
+                    <mat-option value="northamerica-northeast1">Montréal (northamerica-northeast1)</mat-option>
+                    <mat-option value="europe-west2">London (europe-west2)</mat-option>
+                    <mat-option value="europe-north1">Finland (europe-north1)</mat-option>
+                    <mat-option value="asia-south1">Mumbai (asia-south1)</mat-option>
+                    <mat-option value="asia-southeast1">Singapore (asia-southeast1)</mat-option>
+                    <mat-option value="asia-east1">Taiwan (asia-east1)</mat-option>
+                    <mat-option value="asia-northeast1">Tokyo (asia-northeast1)</mat-option>
+                    <mat-option value="australia-southeast1">Sydney (australia-southeast1)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </form>
+          </mat-step>
 
-      <mat-step [stepControl]="schemaFormGroup" label="Data">
-        <div style="margin-bottom: 2em">
-          <button mat-raised-button color="primary" matStepperNext>Add styles</button>
-        </div>
-        <form [formGroup]="schemaFormGroup">
-          <mat-form-field class="wide">
-            <mat-select placeholder="Geometry column" formControlName="geoColumn" ([ngModel])="model" matTooltip="Select field containing WKT-formatted geometry"
-              matTooltipPosition="after">
-              <mat-option *ngFor="let column of geoColumnNames" [value]="column">{{ column }}</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-table *ngIf="data" [dataSource]="data" class="result-table">
-            <ng-container *ngFor="let column of columnNames; let i = index" [matColumnDef]="column">
-              <mat-header-cell *matHeaderCellDef>
-                <div class="header-cell-title">{{ column }}</div>
-              </mat-header-cell>
-              <mat-cell *matCellDef="let row" class="result-table-cell" [title]="row[column]">{{ row[column] }}</mat-cell>
-            </ng-container>
-            <mat-header-row *matHeaderRowDef="columnNames" [ngStyle]="{'min-width': getRowWidth()}"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: columnNames;" [ngStyle]="{'min-width': getRowWidth()}"></mat-row>
-          </mat-table>
-        </form>
-      </mat-step>
+          <mat-step [stepControl]="schemaFormGroup" label="Data">
+            <div style="margin-bottom: 2em">
+              <button mat-raised-button color="primary" matStepperNext>Add styles</button>
+            </div>
+            <form [formGroup]="schemaFormGroup">
+              <mat-form-field class="wide">
+                <mat-select placeholder="Geometry column" formControlName="geoColumn" ([ngModel])="model" matTooltip="Select field containing WKT-formatted geometry"
+                  matTooltipPosition="after">
+                  <mat-option *ngFor="let column of geoColumnNames" [value]="column">{{ column }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-table *ngIf="data" [dataSource]="data" class="result-table">
+                <ng-container *ngFor="let column of columnNames; let i = index" [matColumnDef]="column">
+                  <mat-header-cell *matHeaderCellDef>
+                    <div class="header-cell-title">{{ column }}</div>
+                  </mat-header-cell>
+                  <mat-cell *matCellDef="let row" class="result-table-cell" [title]="row[column]">{{ row[column] }}</mat-cell>
+                </ng-container>
+                <mat-header-row *matHeaderRowDef="columnNames" [ngStyle]="{'min-width': getRowWidth()}"></mat-header-row>
+                <mat-row *matRowDef="let row; columns: columnNames;" [ngStyle]="{'min-width': getRowWidth()}"></mat-row>
+              </mat-table>
+            </form>
+          </mat-step>
 
-      <mat-step [stepControl]="stylesFormGroup" label="Style">
-        <form [formGroup]="stylesFormGroup">
-          <mat-accordion class="styles-prop-list">
-            <mat-expansion-panel *ngFor="let prop of StyleProps" [formGroupName]="prop.name">
-              <mat-expansion-panel-header>
-                <mat-panel-title>{{ prop.name }}</mat-panel-title>
-                <mat-panel-description>
-                  <span *ngIf="getPropStatus(prop.name) === 'computed'" class="rule-badge computed">data-driven</span>
-                  <span *ngIf="getPropStatus(prop.name) === 'global'" class="rule-badge global">global</span>
-                  <span *ngIf="getPropStatus(prop.name) === 'none'" class="rule-badge none">none</span>
-                </mat-panel-description>
-              </mat-expansion-panel-header>
-              <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
-            </mat-expansion-panel>
-          </mat-accordion>
+          <mat-step [stepControl]="stylesFormGroup" label="Style">
+            <form [formGroup]="stylesFormGroup">
+              <mat-accordion class="styles-prop-list">
+                <mat-expansion-panel *ngFor="let prop of StyleProps" [formGroupName]="prop.name">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>{{ prop.name }}</mat-panel-title>
+                    <mat-panel-description>
+                      <span *ngIf="getPropStatus(prop.name) === 'computed'" class="rule-badge computed">data-driven</span>
+                      <span *ngIf="getPropStatus(prop.name) === 'global'" class="rule-badge global">global</span>
+                      <span *ngIf="getPropStatus(prop.name) === 'none'" class="rule-badge none">none</span>
+                    </mat-panel-description>
+                  </mat-expansion-panel-header>
+                  <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
+                </mat-expansion-panel>
+              </mat-accordion>
 
-        </form>
-      </mat-step>
-    </mat-vertical-stepper>
-    <button mat-icon-button (click)="onFillPreset()" class="preset-button" color="primary">
-      <mat-icon aria-label="Fill magic presets">
-        <img src="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png" srcset="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png 1x,
-                      https://www.gstatic.com/images/icons/material/system/2x/auto_fix_white_24dp.png 2x" alt="magic wand">
-      </mat-icon>
-    </button>
-  </section>
+            </form>
+          </mat-step>
+        </mat-vertical-stepper>
+        <button mat-icon-button (click)="onFillPreset()" class="preset-button" color="primary">
+          <mat-icon aria-label="Fill magic presets">
+            <img src="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png" srcset="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png 1x,
+                          https://www.gstatic.com/images/icons/material/system/2x/auto_fix_white_24dp.png 2x" alt="magic wand">
+          </mat-icon>
+        </button>
+      </section>
+    </mat-sidenav>
+  </mat-sidenav-container>
 </div>
