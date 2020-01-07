@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
@@ -48,12 +48,13 @@ const DEBOUNCE_MS = 1000;
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.css']
 })
-export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
+export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
   readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
+  readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
 
   // GCP session data
   readonly dataService = new BigQueryService();
@@ -73,6 +74,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
   project = '';
   dataset = '';
   table = '';
+  jobID = '';
+  location = '';
+  queryTextFromJob = ''
   bytesProcessed: number = 0;
   lintMessage = '';
   pending = false;
@@ -124,9 +128,11 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
     this.geoColumnNames = [];
     this.rows = [];
 
-    this.project = this._route.snapshot.paramMap.get("project")
-    this.dataset = this._route.snapshot.paramMap.get("dataset")
-    this.table = this._route.snapshot.paramMap.get("table")
+    this.project = this._route.snapshot.paramMap.get("project");
+    this.dataset = this._route.snapshot.paramMap.get("dataset");
+    this.table = this._route.snapshot.paramMap.get("table");
+    this.jobID = this._route.snapshot.paramMap.get("job");
+    this.location = this._route.snapshot.paramMap.get("location");
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
@@ -156,28 +162,6 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
     this.updateStyles();
   }
 
-  ngAfterViewInit() {
-    // Skip initialization if there are no query parameters.
-    if (!this._hasParams()) { return; }
-
-    // Abort if query parameters fail validation.
-    if (!this._paramsValid()) {
-      console.warn('Invalid project, dataset and table parameters')
-      return;
-    }
-
-    // Initialize SQL and Project ID from query parameters.
-    // TODO(donmccurdy): Understand why timeout is necessary, and try to fix.
-    setTimeout(() => {
-      this._ngZone.run(() => {
-        this.dataFormGroup.patchValue({
-          sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
-          projectID: this.project
-        });
-      });
-    }, 0);
-  }
-
   ngOnDestroy() {
     this.cmDebouncerSub.unsubscribe();
   }
@@ -200,6 +184,22 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
           this.matchingProjects = projects;
           this._changeDetectorRef.detectChanges();
         });
+
+      if (this._hasJobParams() && this._jobParamsValid()) {
+        this.dataService.getQueryFromJob(this.jobID, this.location, this.project).then((queryText) => {
+          this.queryTextFromJob = queryText.id;
+          this.dataFormGroup.patchValue({
+            sql: this.queryTextFromJob,
+            projectID: this.project
+          });
+        });
+      } else if (this._hasTableParams() && this._tableParamsValid()) {
+        this.dataFormGroup.patchValue({
+          sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
+          projectID: this.project,
+          location: this.location
+        });
+      }
     });
   }
 
@@ -214,11 +214,19 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit  {
     this.cmDebouncer.next();
   }
 
-  _hasParams() : boolean {
+  _hasJobParams() : boolean {
+    return !!(this.jobID && this.project);
+  }
+
+  _hasTableParams() : boolean {
     return !!(this.project && this.dataset && this.table);
   }
 
-  _paramsValid(): boolean {
+  _jobParamsValid(): boolean {
+    return this.projectIDRegExp.test(this.project) &&
+           this.jobIDRegExp.test(this.jobID);
+  }
+  _tableParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
       this.datasetIDRegExp.test(this.dataset) &&
       this.tableIDRegExp.test(this.table);

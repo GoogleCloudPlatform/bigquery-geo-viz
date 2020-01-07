@@ -140,6 +140,21 @@ export class BigQueryService {
   }
 
   /**
+   * Queries and returns the sql text for a specific job ID.
+   */
+  getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Project> {
+    var location_param = '';
+    if (location) {
+      location_param = `location=${location}`;
+    }
+    return gapi.client.request({
+      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs/${jobID}?${location_param}`
+    }).then((response) => {
+      return {id: response.result.configuration.query.query};
+    });
+  }
+
+  /**
    * Performs a dry run for the given query, and returns estimated bytes to be processed.
    * If the dry run fails, returns -1.
    * @param projectID
