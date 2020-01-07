@@ -187,7 +187,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
       if (this._hasJobParams() && this._jobParamsValid()) {
         this.dataService.getQueryFromJob(this.jobID, this.location, this.project).then((queryText) => {
-          this.queryTextFromJob = queryText.id;
+          this.queryTextFromJob = queryText.sql;
           this.dataFormGroup.patchValue({
             sql: this.queryTextFromJob,
             projectID: this.project

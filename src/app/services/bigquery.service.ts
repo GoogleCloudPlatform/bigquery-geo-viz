@@ -37,6 +37,10 @@ export interface Project {
   id: string;
 }
 
+export interface Query {
+  sql: string;
+}
+
 export interface BigQueryColumn {
   name: string;
   type: string;
@@ -142,15 +146,12 @@ export class BigQueryService {
   /**
    * Queries and returns the sql text for a specific job ID.
    */
-  getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Project> {
-    var location_param = '';
-    if (location) {
-      location_param = `location=${location}`;
-    }
+  getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Query> {
+    var location_param = location ? `location=${location}` : '';
     return gapi.client.request({
       path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs/${jobID}?${location_param}`
     }).then((response) => {
-      return {id: response.result.configuration.query.query};
+      return {sql: response.result.configuration.query.query};
     });
   }
 
