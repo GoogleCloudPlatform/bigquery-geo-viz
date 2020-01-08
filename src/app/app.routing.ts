@@ -34,5 +34,18 @@ export const routes: Routes = [
         component: MainComponent
       }
     ]
+  },
+  {
+    path: 'job',
+    children: [
+      {
+        path: ':job/project/:project/location/:location',
+        component: MainComponent
+      },
+      {
+        path: ':job/project/:project',
+        component: MainComponent
+      }
+    ]
   }
 ];
