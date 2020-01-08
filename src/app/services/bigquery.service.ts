@@ -144,13 +144,20 @@ export class BigQueryService {
   }
 
   /**
-   * Queries and returns the sql text for a specific job ID.
+   * Queries and returns the sql text for a specific job ID. Throws and error if the
+   * job id is not for a SELECT statement.
    */
   getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Query> {
     const location_param = location ? `location=${location}` : '';
     return gapi.client.request({
       path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs/${jobID}?${location_param}`
     }).then((response) => {
+      if (!response.result.statistics.query) {
+        throw new Error('Job id is not for a query job.');
+      }
+      if (response.result.statistics.query.statementType != 'SELECT') {
+        throw new Error('Job id is not for a SELECT statement.');
+      }
       return {sql: response.result.configuration.query.query};
     });
   }
