@@ -32,20 +32,20 @@ export const routes: Routes = [
       {
         path: ':project/dataset/:dataset/table/:table',
         component: MainComponent
-      }
-    ]
-  },
-  {
-    path: 'job',
-    children: [
-      {
-        path: ':job/project/:project/location/:location',
-        component: MainComponent
       },
       {
-        path: ':job/project/:project',
-        component: MainComponent
-      }
+        path: ':project/job',
+        children: [
+          {
+            path: ':job/location/:location',
+            component: MainComponent
+          },
+          {
+            path: ':job',
+            component: MainComponent
+          },
+        ]
+      },
     ]
-  }
+  },
 ];
