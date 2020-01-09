@@ -144,7 +144,7 @@ export class BigQueryService {
   }
 
   /**
-   * Queries and returns the sql text for a specific job ID. Throws and error if the
+   * Queries and returns the sql text for a specific job ID. Throws an error if the
    * job id is not for a SELECT statement.
    */
   getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Query> {
