@@ -244,7 +244,7 @@ export class BigQueryService {
               stat.min = Math.round( Math.min(stat.min, v) * 1000 ) / 1000;
             }
           } else {
-            rowObject[column.name] = String(v);
+            rowObject[column.name] = v === null ? null : String(v);
           }
         });
         return rowObject;
