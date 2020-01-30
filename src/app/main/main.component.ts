@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { Component, ChangeDetectorRef, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
+import {LOCAL_STORAGE, WebStorageService} from 'angular-webstorage-service';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import { Subject } from 'rxjs/Subject';
@@ -48,6 +49,7 @@ const DEBOUNCE_MS = 1000;
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.css']
 })
+
 export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
@@ -55,6 +57,10 @@ export class MainComponent implements OnInit, OnDestroy {
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
   readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
+
+  readonly sqlLocalStorageKey = "bq_sql";
+  readonly projectLocalStorageKey = "bq_project_id";
+  readonly locationLocalStorageKey = "bq_execution_location";
 
   // GCP session data
   readonly dataService = new BigQueryService();
@@ -105,6 +111,7 @@ export class MainComponent implements OnInit, OnDestroy {
   cmDebouncerSub: Subscription;
 
   constructor(
+    @Inject(LOCAL_STORAGE) private _storage: WebStorageService,
     private _formBuilder: FormBuilder,
     private _snackbar: MatSnackBar,
     private _changeDetectorRef: ChangeDetectorRef,
@@ -162,6 +169,18 @@ export class MainComponent implements OnInit, OnDestroy {
     this.updateStyles();
   }
 
+  saveDataToLocalStorage(projectID : string, sql : string, location : string) {
+    this._storage.set(this.projectLocalStorageKey, projectID);
+    this._storage.set(this.sqlLocalStorageKey, sql);
+    this._storage.set(this.locationLocalStorageKey, location);
+  }
+
+  loadDataFromLocalStorage() : {projectID : string, sql : string, location : string} {
+    return {projectID: this._storage.get(this.projectLocalStorageKey),
+            sql: this._storage.get(this.sqlLocalStorageKey),
+            location: this._storage.get(this.locationLocalStorageKey)};
+  }
+
   ngOnDestroy() {
     this.cmDebouncerSub.unsubscribe();
   }
@@ -198,6 +217,13 @@ export class MainComponent implements OnInit, OnDestroy {
           sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
           projectID: this.project,
           location: this.location
+        });
+      } else {
+        var localStorageValues = this.loadDataFromLocalStorage();
+        this.dataFormGroup.patchValue({
+          sql: localStorageValues.sql,
+          projectID: localStorageValues.projectID,
+          location: localStorageValues.location
         });
       }
     });
@@ -260,6 +286,10 @@ export class MainComponent implements OnInit, OnDestroy {
     this.pending = true;
 
     const { projectID, sql, location } = this.dataFormGroup.getRawValue();
+
+    // We will save the query information to local store to be restored next
+    // time that the app is launched.
+    this.saveDataToLocalStorage(projectID, sql, location);
 
     let geoColumns;
 
