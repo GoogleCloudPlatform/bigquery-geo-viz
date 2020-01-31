@@ -178,16 +178,23 @@ export class MainComponent implements OnInit, OnDestroy {
     this._storage.remove(this.localStorageKey);
   }
 
+  resetUIOnSingout() {
+    this.clearDataFromLocalStorage();
+    this.dataFormGroup.reset();
+    this.lintMessage = '';
+  }
+
   ngOnDestroy() {
     this.cmDebouncerSub.unsubscribe();
   }
 
   signin() {
+    this._storage.remove(this.localStorageKey);
     this.dataService.signin();
   }
 
   signout() {
-    this.clearDataFromLocalStorage();
+    this.resetUIOnSingout();
     this.dataService.signout();
   }
 
@@ -218,11 +225,13 @@ export class MainComponent implements OnInit, OnDestroy {
         });
       } else {
         const localStorageValues = this.loadDataFromLocalStorage();
-        this.dataFormGroup.patchValue({
-          sql: localStorageValues.sql,
-          projectID: localStorageValues.projectID,
-          location: localStorageValues.location
-        });
+        if (localStorageValues) {
+          this.dataFormGroup.patchValue({
+            sql: localStorageValues.sql,
+            projectID: localStorageValues.projectID,
+            location: localStorageValues.location
+          });
+        }
       }
     });
   }
