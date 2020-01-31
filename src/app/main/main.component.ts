@@ -17,7 +17,7 @@
 import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
-import {LOCAL_STORAGE, WebStorageService} from 'angular-webstorage-service';
+import { LOCAL_STORAGE, WebStorageService } from 'angular-webstorage-service';
 import { MatTableDataSource, MatSnackBar } from '@angular/material';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
 import { Subject } from 'rxjs/Subject';
@@ -57,10 +57,7 @@ export class MainComponent implements OnInit, OnDestroy {
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
   readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
-
-  readonly sqlLocalStorageKey = "bq_sql";
-  readonly projectLocalStorageKey = "bq_project_id";
-  readonly locationLocalStorageKey = "bq_execution_location";
+  readonly localStorageKey = "execution_local_storage_key";
 
   // GCP session data
   readonly dataService = new BigQueryService();
@@ -170,15 +167,15 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   saveDataToLocalStorage(projectID : string, sql : string, location : string) {
-    this._storage.set(this.projectLocalStorageKey, projectID);
-    this._storage.set(this.sqlLocalStorageKey, sql);
-    this._storage.set(this.locationLocalStorageKey, location);
+    this._storage.set(this.localStorageKey, {projectID: projectID, sql: sql, location: location});
   }
 
   loadDataFromLocalStorage() : {projectID : string, sql : string, location : string} {
-    return {projectID: this._storage.get(this.projectLocalStorageKey),
-            sql: this._storage.get(this.sqlLocalStorageKey),
-            location: this._storage.get(this.locationLocalStorageKey)};
+    return this._storage.get(this.localStorageKey);
+  }
+
+  clearDataFromLocalStorage() {
+    this._storage.remove(this.localStorageKey);
   }
 
   ngOnDestroy() {
@@ -190,6 +187,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   signout() {
+    this.clearDataFromLocalStorage();
     this.dataService.signout();
   }
 
@@ -219,7 +217,7 @@ export class MainComponent implements OnInit, OnDestroy {
           location: this.location
         });
       } else {
-        var localStorageValues = this.loadDataFromLocalStorage();
+        const localStorageValues = this.loadDataFromLocalStorage();
         this.dataFormGroup.patchValue({
           sql: localStorageValues.sql,
           projectID: localStorageValues.projectID,
