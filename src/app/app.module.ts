@@ -47,6 +47,7 @@ import { RuleInputComponent } from './rule/rule.component';
 import { FileSizePipe } from './file-size.pipe';
 import { environment } from '../environments/environment';
 
+import {StorageServiceModule} from 'angular-webstorage-service';
 import {ColorPickerModule} from 'ngx-color-picker';
 
 if ( environment.production ) {
@@ -83,9 +84,9 @@ if ( environment.production ) {
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatTooltipModule,
-
     FormsModule,
     ReactiveFormsModule,
+    StorageServiceModule,
 
     ColorPickerModule
   ],

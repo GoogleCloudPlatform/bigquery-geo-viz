@@ -144,7 +144,7 @@ export class BigQueryService {
   }
 
   /**
-   * Queries and returns the sql text for a specific job ID. Throws and error if the
+   * Queries and returns the sql text for a specific job ID. Throws an error if the
    * job id is not for a SELECT statement.
    */
   getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Query> {
@@ -244,7 +244,7 @@ export class BigQueryService {
               stat.min = Math.round( Math.min(stat.min, v) * 1000 ) / 1000;
             }
           } else {
-            rowObject[column.name] = String(v);
+            rowObject[column.name] = v === null ? null : String(v);
           }
         });
         return rowObject;
