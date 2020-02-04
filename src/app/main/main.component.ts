@@ -57,7 +57,7 @@ export class MainComponent implements OnInit, OnDestroy {
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
   readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
-  readonly localStorageKey = "execution_local_storage_key";
+  readonly localStorageKey = 'execution_local_storage_key';
 
   // GCP session data
   readonly dataService = new BigQueryService();
