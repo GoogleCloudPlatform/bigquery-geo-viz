@@ -189,7 +189,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   signin() {
-    this._storage.remove(this.localStorageKey);
+    this.clearDataFromLocalStorage();
     this.dataService.signin();
   }
 
