@@ -79,7 +79,6 @@ export class MainComponent implements OnInit, OnDestroy {
   table = '';
   jobID = '';
   location = '';
-  queryTextFromJob = ''
   bytesProcessed: number = 0;
   lintMessage = '';
   pending = false;
@@ -133,7 +132,11 @@ export class MainComponent implements OnInit, OnDestroy {
     this.rows = [];
 
     // Read parameters from URL
-    this.readUrlParams();
+    this.project = this._route.snapshot.paramMap.get("project");
+    this.dataset = this._route.snapshot.paramMap.get("dataset");
+    this.table = this._route.snapshot.paramMap.get("table");
+    this.jobID = this._route.snapshot.paramMap.get("job");
+    this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
@@ -161,18 +164,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Initialize default styles.
     this.updateStyles();
-  }
-
-  readUrlParams() {
-    this.project = this._route.snapshot.paramMap.get("project");
-    this.dataset = this._route.snapshot.paramMap.get("dataset");
-    this.table = this._route.snapshot.paramMap.get("table");
-    this.jobID = this._route.snapshot.paramMap.get("job");
-    this.location = this._route.snapshot.paramMap.get("location");
-    // To set the dropdown to "Auto Select", we need empty string for location.
-    if (!this.location) {
-      this.location = '';
-    }
   }
 
   saveDataToLocalStorage(projectID : string, sql : string, location : string) {
@@ -225,18 +216,14 @@ export class MainComponent implements OnInit, OnDestroy {
           location: this.location
         });
         this.dataService.getQueryFromJob(this.jobID, this.location, this.project).then((queryText) => {
-          this.queryTextFromJob = queryText.sql;
           this.dataFormGroup.patchValue({
-            sql: this.queryTextFromJob,
-            projectID: this.project,
-            location: this.location
+            sql: queryText.sql,
           });
         });
       } else if (this._hasTableParams() && this._tableParamsValid()) {
         this.dataFormGroup.patchValue({
           sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
           projectID: this.project,
-          location: ''
         });
       } else {
         const localStorageValues = this.loadDataFromLocalStorage();
