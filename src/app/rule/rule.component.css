@@ -12,7 +12,7 @@ mat-form-field {
 }
 
 .array-field-list {
-    display: flex;
+    display: block;
 }
 
 .array-field-item {
