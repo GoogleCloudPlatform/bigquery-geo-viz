@@ -65,7 +65,8 @@ export interface BigQueryResponse {
   rows: Array<Object> | undefined;
   totalRows : number;
   stats: Map<String, ColumnStat> | undefined;
-  hasMoreRows : boolean;
+  pageToken: string | undefined;
+  jobId: string | undefined;
 }
 
 /**
@@ -196,6 +197,51 @@ export class BigQueryService {
     });
   }
 
+  NormalizeRows(rows: Array<Object>, normalized_cols: Array<Object>, stats: Map<String, ColumnStat>) {
+    return (rows || []).map((row) => {
+      const rowObject = {};
+      row['f'].forEach(({v}, index) => {
+	const column = normalized_cols[index];
+	if (column['type'] === ColumnType.NUMBER) {
+	  v = v === '' || v === null ? null : Number(v);
+	  rowObject[column['name']] = v;
+	  const stat = stats.get(column['name']);
+	  if (v === null) {
+	    stat.nulls++;
+	  } else {
+	    stat.max = Math.round( Math.max(stat.max, v) * 1000 ) / 1000;
+	    stat.min = Math.round( Math.min(stat.min, v) * 1000 ) / 1000;
+	  }
+	} else {
+	  rowObject[column['name']] = v === null ? null : String(v);
+	}
+      });
+      return rowObject;    
+    });
+  }
+
+  getResults(projectID: string, jobId: string, location: string, pageToken: string, normalized_cols: Array<Object>, stats: Map<String, ColumnStat>): Promise<BigQueryResponse> {
+    const body = {
+      maxResults: MAX_RESULTS,
+      timeoutMs: TIMEOUT_MS,
+      pageToken: pageToken
+    };
+    if (location) { body['location'] = location; }
+	return gapi.client.request({
+	  path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobId}`,
+	  method: 'GET',
+	  params: body,
+	}).then((response) => {
+	  if (response.result.jobComplete === false) {
+	    throw new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds. This UI does not yet handle longer jobs.`);
+	  }
+	  // Normalize row structure.
+	  const rows = this.NormalizeRows(response.result.rows, normalized_cols, stats);
+
+	  return {rows, stats, pageToken: response.result.pageToken} as BigQueryResponse;
+      }); 
+   }
+
   query(projectID: string, sql: string, location: string): Promise<BigQueryResponse> {
     const body = {
       query: sql,
@@ -214,7 +260,7 @@ export class BigQueryService {
       if (response.result.jobComplete === false) {
         throw new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds. This UI does not yet handle longer jobs.`);
       }
-
+      
       // Normalize column types.
       const columnNames = [];
       const columns = (response.result.schema.fields || []).map((field) => {
@@ -227,36 +273,17 @@ export class BigQueryService {
         columnNames.push(field.name);
         return field;
       });
-
-      // Normalize row structure.
-      const rows = (response.result.rows || []).map((row) => {
-        const rowObject = {};
-        row.f.forEach(({v}, index) => {
-          const column = columns[index];
-          if (column.type === ColumnType.NUMBER) {
-            v = v === '' || v === null ? null : Number(v);
-            rowObject[column.name] = v;
-            const stat = stats.get(column.name);
-            if (v === null) {
-              stat.nulls++;
-            } else {
-              stat.max = Math.round( Math.max(stat.max, v) * 1000 ) / 1000;
-              stat.min = Math.round( Math.min(stat.min, v) * 1000 ) / 1000;
-            }
-          } else {
-            rowObject[column.name] = v === null ? null : String(v);
-          }
-        });
-        return rowObject;
-      });
-
-      if (rows.length === 0) {
-        throw new Error('No results.');
-      }
-
+                  
+       // Normalize row structure.
+       const rows = this.NormalizeRows(response.result.rows, columns, stats);
+      
+       if (rows.length === 0) {
+         throw new Error('No results.');
+       }
+ 
       const totalRows = Number(response.result.totalRows);
-
-      return {columns, columnNames, rows, stats, totalRows} as BigQueryResponse;
+      
+      return {columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobId: response.result.jobReference.jobId} as BigQueryResponse;
     });
   }
 }

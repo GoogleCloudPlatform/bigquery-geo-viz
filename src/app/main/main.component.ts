@@ -30,7 +30,8 @@ import {
     BigQueryService,
     ColumnStat,
     Project,
-    BigQueryDryRunResponse
+    BigQueryDryRunResponse,
+    BigQueryResponse
 } from '../services/bigquery.service';
 import {
   Step,
@@ -56,7 +57,7 @@ export class MainComponent implements OnInit, OnDestroy {
   readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
-  readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
+  readonly jobIdRegExp = new RegExp('[a-z0-9_-]*$', 'i');
   readonly localStorageKey = 'execution_local_storage_key';
 
   // GCP session data
@@ -77,7 +78,7 @@ export class MainComponent implements OnInit, OnDestroy {
   project = '';
   dataset = '';
   table = '';
-  jobID = '';
+  jobId = '';
   location = '';
   bytesProcessed: number = 0;
   lintMessage = '';
@@ -87,7 +88,6 @@ export class MainComponent implements OnInit, OnDestroy {
   maxRows: number = MAX_RESULTS;
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
-  hasMoreRows = false;
   sideNavOpened: boolean = true;
 
   // UI state
@@ -135,7 +135,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.project = this._route.snapshot.paramMap.get("project");
     this.dataset = this._route.snapshot.paramMap.get("dataset");
     this.table = this._route.snapshot.paramMap.get("table");
-    this.jobID = this._route.snapshot.paramMap.get("job");
+    this.jobId = this._route.snapshot.paramMap.get("job");
     this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
 
     // Data form group
@@ -160,8 +160,7 @@ export class MainComponent implements OnInit, OnDestroy {
     const stylesGroupMap = {};
     StyleProps.forEach((prop) => stylesGroupMap[prop.name] = this.createStyleFormGroup());
     this.stylesFormGroup = this._formBuilder.group(stylesGroupMap);
-    this.stylesFormGroup.valueChanges.debounceTime(500).subscribe(() => this.updateStyles());
-
+    
     // Initialize default styles.
     this.updateStyles();
   }
@@ -215,7 +214,7 @@ export class MainComponent implements OnInit, OnDestroy {
           projectID: this.project,
           location: this.location
         });
-        this.dataService.getQueryFromJob(this.jobID, this.location, this.project).then((queryText) => {
+        this.dataService.getQueryFromJob(this.jobId, this.location, this.project).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
           });
@@ -240,8 +239,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
   onStepperChange(e: StepperSelectionEvent) {
     this.stepIndex = e.selectedIndex;
-    this.updateStyles();
-
     gtag('event', 'step', { event_label: `step ${this.stepIndex}` });
   }
 
@@ -250,7 +247,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _hasJobParams() : boolean {
-    return !!(this.jobID && this.project);
+    return !!(this.jobId && this.project);
   }
 
   _hasTableParams() : boolean {
@@ -259,7 +256,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   _jobParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
-           this.jobIDRegExp.test(this.jobID);
+           this.jobIdRegExp.test(this.jobId);
   }
   _tableParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
@@ -290,6 +287,23 @@ export class MainComponent implements OnInit, OnDestroy {
     return dryRun;
   }
 
+  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobId: string)  : Promise<BigQueryResponse> {
+    if (!inputPageToken) {
+      // Force an update feature here since everything is done.
+      var localRows : Array<Object> = [];
+      localRows.push(...this.rows);
+      this.rows = localRows;
+      return;
+    }
+    count = count + 1;
+    return this.dataService.getResults(projectId, jobId, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => { 
+      this.rows.push(...rows);                                                                                      
+      this.stats = stats;
+      this._changeDetectorRef.detectChanges();
+      return this.getResults(count, projectId, pageToken, location, jobId);
+    });
+  }
+
   query() {
     if (this.pending) { return; }
     this.pending = true;
@@ -316,16 +330,17 @@ export class MainComponent implements OnInit, OnDestroy {
           FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
         return this.dataService.query(projectID, wrappedSQL, location);
       })
-      .then(({ columns, columnNames, rows, stats, totalRows }) => {
+      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobId }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name)
-        this.rows = rows;
+	this.rows = rows;                                                                                      
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
         this.totalRows = totalRows;
-      })
+        return this.getResults(0, projectID, pageToken, location, jobId);
+      })                                                                 
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
         if (error.status === 'INVALID_ARGUMENT' && error.message.match(/^Unrecognized name: f\d+_/)) {
@@ -341,6 +356,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.pending = false;
         this._changeDetectorRef.detectChanges();
       });
+
   }
 
   updateStyles() {

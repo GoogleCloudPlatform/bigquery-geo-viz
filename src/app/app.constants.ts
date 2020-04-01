@@ -23,7 +23,7 @@ export const Step = {
 };
 
 // Maximum number of results to be returned by BigQuery API.
-export const MAX_RESULTS = 500000;
+export const MAX_RESULTS = 5000000;
 
 // Maximum number of results to be shown in the HTML preview table.
 export const MAX_RESULTS_PREVIEW = 10;

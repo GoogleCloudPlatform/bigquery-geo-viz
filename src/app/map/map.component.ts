@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit, IterableDiffers, IterableDiffer } from '@angular/core';
 import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
@@ -52,7 +52,10 @@ export class MapComponent implements AfterViewInit {
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
 
+  private _numChanges = 0;
+  private _batchSize = 5;
   private _deckLayer: GoogleMapsOverlay = null;
+  private _iterableDiffer = null;
 
   @Input()
   set rows(rows: object[]) {
@@ -74,12 +77,26 @@ export class MapComponent implements AfterViewInit {
     this.updateStyles();
   }
 
-  constructor(private _ngZone: NgZone) {
+  constructor(private _ngZone: NgZone, private iterableDiffers: IterableDiffers) {
+    this._iterableDiffer = iterableDiffers.find([]).create(null);
     this.pendingStyles = fetch('assets/basemap.json', {credentials: 'include'})
       .then((response) => response.json());
   }
 
-  /**
+  ngDoCheck() {
+	  let changes = this._iterableDiffer.diff(this._rows);      
+	  if (changes) {
+		  this._numChanges++;     
+		  if (this._numChanges >= this._batchSize) {
+			  this.updateFeatures();
+			  this.updateStyles();
+			  this._numChanges = 0;
+			  this._batchSize = this._batchSize * 1.5;
+		  }
+	  } 
+  }
+
+/**
    * Constructs a Maps API instance after DOM has initialized.
    */
   ngAfterViewInit() {
@@ -136,10 +153,10 @@ export class MapComponent implements AfterViewInit {
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features: this._features});
     const bounds = new google.maps.LatLngBounds(
-      new google.maps.LatLng(minY, minX),
-      new google.maps.LatLng(maxY, maxX)
-    );
-    if (!bounds.isEmpty()) { this.map.fitBounds(bounds); }
+     new google.maps.LatLng(minY, minX),
+     new google.maps.LatLng(maxY, maxX)
+   );
+   if (!bounds.isEmpty()) { this.map.fitBounds(bounds); }
   }
 
   /**
