@@ -52,8 +52,11 @@ export class MapComponent implements AfterViewInit {
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
 
+  // Detects how many times we have received new values.      
   private _numChanges = 0;
+  // Counts after how many changes we should update the map.
   private _batchSize = 5;
+
   private _deckLayer: GoogleMapsOverlay = null;
   private _iterableDiffer = null;
 
@@ -84,16 +87,17 @@ export class MapComponent implements AfterViewInit {
   }
 
   ngDoCheck() {
-	  let changes = this._iterableDiffer.diff(this._rows);      
-	  if (changes) {
-		  this._numChanges++;     
-		  if (this._numChanges >= this._batchSize) {
-			  this.updateFeatures();
-			  this.updateStyles();
-			  this._numChanges = 0;
-			  this._batchSize = this._batchSize * 1.5;
-		  }
-	  } 
+    let changes = this._iterableDiffer.diff(this._rows);      
+    if (changes) {
+      this._numChanges++;     
+        if (this._numChanges >= this._batchSize) {
+         this.updateFeatures();
+         this.updateStyles();
+         this._numChanges = 0;
+	 // Increase the batch size incrementally to keep the overhead low.
+         this._batchSize = this._batchSize * 1.5;
+      }
+    } 
   }
 
 /**
@@ -198,7 +202,7 @@ export class MapComponent implements AfterViewInit {
       getLineWidth: (d) => this.getStyle(d, this._styles, 'strokeWeight'),
       getRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
     });
-
+    
     this._deckLayer.setProps({ layers: [layer] });
   }
 

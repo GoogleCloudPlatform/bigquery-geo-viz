@@ -287,8 +287,9 @@ export class MainComponent implements OnInit, OnDestroy {
     return dryRun;
   }
 
+  // 'count' is used to track the number of request. Each request is 10MB, so we are limiting the total to 250 MB.
   getResults(count: number, projectId: string, inputPageToken: string, location: string, jobId: string)  : Promise<BigQueryResponse> {
-    if (!inputPageToken) {
+    if (!inputPageToken || count >= 25) {
       // Force an update feature here since everything is done.
       var localRows : Array<Object> = [];
       localRows.push(...this.rows);
