@@ -19,7 +19,8 @@ import * as colorbrewer from 'colorbrewer';
 export const Step = {
     DATA: 0,
     SCHEMA: 1,
-    STYLE: 2
+    STYLE: 2,
+    SHARE: 3
 };
 
 // Maximum number of results to be returned by BigQuery API.

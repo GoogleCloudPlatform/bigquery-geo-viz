@@ -53,6 +53,14 @@ mat-progress-spinner {
     z-index: 10000;
 }
 
+.share-button {
+    position: fixed;
+    bottom: 2em;
+    left: 10em;
+    background: #00539b;
+    z-index: 10000;
+}
+
 .toggle-button {
     position: fixed;
     bottom: 2em;

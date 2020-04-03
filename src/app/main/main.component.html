@@ -27,14 +27,14 @@
     </mat-sidenav-content>
     <mat-sidenav #sidenav mode="side" position="start" [(opened)]="sideNavOpened">
       <section class="drawer">
-        <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" #stepper class="stepper">
+        <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" (click)="onStepperClick()" #stepper class="stepper">
           <mat-step [stepControl]="dataFormGroup" label="Query">
 
             <button *ngIf="!isSignedIn" mat-raised-button color="primary" (click)="signin()">Authorize</button>
 
             <form *ngIf="isSignedIn" [formGroup]="dataFormGroup">
               <mat-form-field class="sql-form-field">
-                <input type="text" placeholder="Project ID" matInput formControlName="projectID" ([ngModel])="model" [matAutocomplete]="auto">
+                <input type="text" placeholder="Project ID" matInput formControlName="projectId" ([ngModel])="model" [matAutocomplete]="auto">
                 <mat-autocomplete #auto="matAutocomplete">
                   <mat-option *ngFor="let project of matchingProjects" [value]="project.id">
                     {{ project.id }}
@@ -120,9 +120,17 @@
                   <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
                 </mat-expansion-panel>
               </mat-accordion>
-              <button mat-raised-button color="primary" (click)="updateStyles()">Apply Style</button>
+              <button mat-raised-button color="primary" (click)="onApplyStylesClicked()">Apply Style</button>
             </form>
           </mat-step>
+          <mat-step [stepControl]="sharingFormGroup" label="Share">
+	    <form [formGroup]="sharingFormGroup">
+	      <mat-form-field class="sql-form-field">
+	      URL:  
+		<input type="text" matInput formControlName="sharingUrl" ([ngModel])="model" readonly>
+	      </mat-form-field>
+	    </form>
+	  </mat-step>
         </mat-vertical-stepper>
         <button mat-icon-button (click)="onFillPreset()" class="preset-button" color="primary">
           <mat-icon aria-label="Fill magic presets">

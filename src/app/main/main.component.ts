@@ -28,11 +28,14 @@ import 'rxjs/add/operator/map';
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
     BigQueryService,
+    BigQueryColumn,
     ColumnStat,
     Project,
     BigQueryDryRunResponse,
     BigQueryResponse
 } from '../services/bigquery.service';
+
+import { FirestoreService, ShareableData } from '../services/firestore.service'
 import {
   Step,
   SAMPLE_QUERY,
@@ -44,6 +47,8 @@ import {
 } from '../app.constants';
 
 const DEBOUNCE_MS = 1000;
+const USER_QUERY_START_MARKER = '--__USER__QUERY__START__';
+const USER_QUERY_END_MARKER = '--__USER__QUERY__END__';
 
 @Component({
   selector: 'app-main',
@@ -54,7 +59,7 @@ const DEBOUNCE_MS = 1000;
 export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
-  readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
+  readonly projectIdRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
   readonly jobIdRegExp = new RegExp('[a-z0-9_-]*$', 'i');
@@ -62,6 +67,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   // GCP session data
   readonly dataService = new BigQueryService();
+  readonly storageService = new FirestoreService();
   isSignedIn: boolean;
   user: Object;
   matchingProjects: Array<Project> = [];
@@ -70,12 +76,13 @@ export class MainComponent implements OnInit, OnDestroy {
   dataFormGroup: FormGroup;
   schemaFormGroup: FormGroup;
   stylesFormGroup: FormGroup;
+  sharingFormGroup: FormGroup;
 
   // BigQuery response data
   columns: Array<Object>;
   columnNames: Array<string>;
   geoColumnNames: Array<string>;
-  project = '';
+  projectId = '';
   dataset = '';
   table = '';
   jobId = '';
@@ -89,6 +96,11 @@ export class MainComponent implements OnInit, OnDestroy {
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
   sideNavOpened: boolean = true;
+  // If a new query is run or the styling has changed, we need to generate a new sharing id.
+  newSharingIdRequired = false;
+  // Track if the stepper has actually changed.
+  stepperChanged = false;
+  sharingId = '';
 
   // UI state
   stepIndex: Number = 0;
@@ -132,23 +144,24 @@ export class MainComponent implements OnInit, OnDestroy {
     this.rows = [];
 
     // Read parameters from URL
-    this.project = this._route.snapshot.paramMap.get("project");
+    this.projectId = this._route.snapshot.paramMap.get("project");
     this.dataset = this._route.snapshot.paramMap.get("dataset");
     this.table = this._route.snapshot.paramMap.get("table");
     this.jobId = this._route.snapshot.paramMap.get("job");
     this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
+    this.sharingId = this._route.snapshot.queryParams["shareid"];
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
-      projectID: ['', Validators.required],
+      projectId: ['', Validators.required],
       sql: ['', Validators.required],
       location: [''],
     });
-    this.dataFormGroup.controls.projectID.valueChanges.debounceTime(200).subscribe(() => {
+    this.dataFormGroup.controls.projectId.valueChanges.debounceTime(200).subscribe(() => {
       this.dataService.getProjects()
         .then((projects) => {
           this.matchingProjects = projects.filter((project) => {
-            return project['id'].indexOf(this.dataFormGroup.controls.projectID.value) >= 0;
+            return project['id'].indexOf(this.dataFormGroup.controls.projectId.value) >= 0;
           });
         });
     });
@@ -161,15 +174,38 @@ export class MainComponent implements OnInit, OnDestroy {
     StyleProps.forEach((prop) => stylesGroupMap[prop.name] = this.createStyleFormGroup());
     this.stylesFormGroup = this._formBuilder.group(stylesGroupMap);
     
+    // Sharing form group
+    this.sharingFormGroup = this._formBuilder.group({
+      sharingUrl : '',
+    });
+
     // Initialize default styles.
     this.updateStyles();
   }
 
-  saveDataToLocalStorage(projectID : string, sql : string, location : string) {
-    this._storage.set(this.localStorageKey, {projectID: projectID, sql: sql, location: location});
+  saveDataToSharedStorage() {
+    const dataValues = this.dataFormGroup.getRawValue(); 
+    const styleValues = this.styles;
+    var shareableData = {
+      projectId : dataValues.projectId,
+      jobId : this.jobId,
+      location: dataValues.location,
+      styles: styleValues
+    };
+    return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
+      this.sharingId = written_doc_id;
+    })
   }
 
-  loadDataFromLocalStorage() : {projectID : string, sql : string, location : string} {
+  restoreDataFromSharedStorage(docId : string) : Promise<ShareableData>{
+    return this.storageService.getSharedData(this.sharingId);
+  }
+
+  saveDataToLocalStorage(projectId : string, sql : string, location : string) {
+    this._storage.set(this.localStorageKey, {projectId: projectId, sql: sql, location: location});
+  }
+
+  loadDataFromLocalStorage() : {projectId : string, sql : string, location : string} {
     return this._storage.get(this.localStorageKey);
   }
 
@@ -211,25 +247,48 @@ export class MainComponent implements OnInit, OnDestroy {
       if (this._hasJobParams() && this._jobParamsValid()) {
         this.dataFormGroup.patchValue({
           sql: '/* Loading sql query from job... */',
-          projectID: this.project,
+          projectId: this.projectId,
           location: this.location
         });
-        this.dataService.getQueryFromJob(this.jobId, this.location, this.project).then((queryText) => {
+        this.dataService.getQueryFromJob(this.jobId, this.location, this.projectId).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
           });
         });
       } else if (this._hasTableParams() && this._tableParamsValid()) {
         this.dataFormGroup.patchValue({
-          sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
-          projectID: this.project,
+          sql: `SELECT * FROM \`${this.projectId}.${this.dataset}.${this.table}\`;`,
+          projectId: this.projectId,
         });
+      } else if (this.sharingId) {
+	this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
+	  if (shareableValues) {
+	    this.dataFormGroup.patchValue({
+	      sql: '/* Loading sql query from job... */',
+	      projectId: shareableValues.projectId,
+	      location: shareableValues.location
+	    });
+	    this.dataService.getQueryFromJob(shareableValues.jobId, shareableValues.location, shareableValues.projectId).then((queryText) => {
+	      this.dataFormGroup.patchValue({
+		sql: this.convertToUserQuery(queryText.sql),
+	      });
+	    });
+	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, shareableValues.styles['fillColor'].domain.length);
+	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, shareableValues.styles['fillOpacity'].domain.length);
+	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, shareableValues.styles['strokeColor'].domain.length);
+	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, shareableValues.styles['strokeOpacity'].domain.length);
+	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, shareableValues.styles['strokeWeight'].domain.length);
+	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, shareableValues.styles['circleRadius'].domain.length);
+	    this.stylesFormGroup.patchValue(shareableValues.styles);
+	    this.updateStyles();
+	  }
+	}).catch((e) => this.showMessage(parseErrorMessage(e)));
       } else {
-        const localStorageValues = this.loadDataFromLocalStorage();
+	const localStorageValues = this.loadDataFromLocalStorage();
         if (localStorageValues) {
           this.dataFormGroup.patchValue({
             sql: localStorageValues.sql,
-            projectID: localStorageValues.projectID,
+            projectId: localStorageValues.projectId,
             location: localStorageValues.location
           });
         }
@@ -237,8 +296,31 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
+  onStepperClick(event) {
+    if (this.pending) {
+      this.sharingFormGroup.patchValue({
+	sharingUrl: 'Waiting for the query to finish';
+      });
+    } else if (this.stepIndex == Step.SHARE && this.stepperChanged && this.newSharingIdRequired) {
+      this.sharingFormGroup.patchValue({
+	sharingUrl: 'Generating URL...'
+      });
+      this.saveDataToSharedStorage().then(() => {
+	this.sharingFormGroup.patchValue({
+	  sharingUrl: window.location.origin + '?shareid='+ this.sharingId
+	});
+	this.newSharingIdRequired = false;
+      }).catch((e) => this.showMessage(parseErrorMessage(e)));
+    }
+  }
+
   onStepperChange(e: StepperSelectionEvent) {
     this.stepIndex = e.selectedIndex;
+    if (e.selectedIndex != e.previouslySelectedIndex) { 
+      this.stepperChanged = true;
+    } else {
+      this.stepperChanged = false;
+    }
     gtag('event', 'step', { event_label: `step ${this.stepIndex}` });
   }
 
@@ -247,27 +329,27 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _hasJobParams() : boolean {
-    return !!(this.jobId && this.project);
+    return !!(this.jobId && this.projectId);
   }
 
   _hasTableParams() : boolean {
-    return !!(this.project && this.dataset && this.table);
+    return !!(this.projectId && this.dataset && this.table);
   }
 
   _jobParamsValid(): boolean {
-    return this.projectIDRegExp.test(this.project) &&
+    return this.projectIdRegExp.test(this.projectId) &&
            this.jobIdRegExp.test(this.jobId);
   }
   _tableParamsValid(): boolean {
-    return this.projectIDRegExp.test(this.project) &&
+    return this.projectIdRegExp.test(this.projectId) &&
       this.datasetIDRegExp.test(this.dataset) &&
       this.tableIDRegExp.test(this.table);
   }
 
   _dryRun(): Promise<BigQueryDryRunResponse> {
-    const { projectID, sql, location } = this.dataFormGroup.getRawValue();
-    if (!projectID) return;
-    const dryRun = this.dataService.prequery(projectID, sql, location)
+    const { projectId, sql, location } = this.dataFormGroup.getRawValue();
+    if (!projectId) return;
+    const dryRun = this.dataService.prequery(projectId, sql, location)
       .then((response: BigQueryDryRunResponse) => {
         if (!response.ok) throw new Error('Query analysis failed.');
         const geoColumn = response.schema.fields.find((f) => f.type === 'GEOGRAPHY');
@@ -305,31 +387,62 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
+  convertToUserQuery(geovizQuery : string) : string {
+    if (!geovizQuery) return '';
+
+    var lines = geovizQuery.split('\n');
+    var userQueryStarted = false;
+    var userQuery = '';
+    lines.forEach((line) => {
+      if (line.includes(USER_QUERY_START_MARKER)) {
+	userQueryStarted = true;
+      } else if (line.includes(USER_QUERY_END_MARKER)) {
+	userQueryStarted = false;
+      } else {
+	if (userQueryStarted) {
+	  userQuery += line + '\n';
+	}
+      }
+    });
+
+    return userQuery.trim();
+  }
+
+  convertToGeovizQuery(userQuery : string, geoColumns: BigQueryColumn[], numCols : number) :  string {
+    const hasNonGeoColumns = geoColumns.length < numCols;
+    const nonGeoClause = hasNonGeoColumns
+      ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ') }),`
+      : '';
+    return `SELECT
+  ${nonGeoClause}
+  ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
+FROM (
+${USER_QUERY_START_MARKER}\n
+${userQuery.replace(/;\s*$/, '')}\n
+${USER_QUERY_END_MARKER}\n
+);`;              
+  }
+
   query() {
     if (this.pending) { return; }
     this.pending = true;
 
-    const { projectID, sql, location } = this.dataFormGroup.getRawValue();
-
     // We will save the query information to local store to be restored next
     // time that the app is launched.
-    this.saveDataToLocalStorage(projectID, sql, location);
+    const dataFormValues = this.dataFormGroup.getRawValue();
+    this.projectId = dataFormValues.projectId;
+    const sql = dataFormValues.sql;
+    this.location = dataFormValues.location;
+    this.saveDataToLocalStorage(this.projectId, sql, this.location);
 
     let geoColumns;
 
     this._dryRun()
       .then((dryRunResponse) => {
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
-        const hasNonGeoColumns = geoColumns.length < dryRunResponse.schema.fields.length;
-        const nonGeoClause = hasNonGeoColumns
-          ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ') }),`
-          : '';
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
-        const wrappedSQL = `SELECT
-            ${nonGeoClause}
-            ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
-          FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
-        return this.dataService.query(projectID, wrappedSQL, location);
+        const wrappedSQL = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
+        return this.dataService.query(this.projectId, wrappedSQL, this.location);
       })
       .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobId }) => {
         this.columns = columns;
@@ -340,7 +453,8 @@ export class MainComponent implements OnInit, OnDestroy {
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
         this.totalRows = totalRows;
-        return this.getResults(0, projectID, pageToken, location, jobId);
+	this.jobId = jobId;
+        return this.getResults(0, this.projectId, pageToken, this.location, jobId);
       })                                                                 
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
@@ -355,9 +469,15 @@ export class MainComponent implements OnInit, OnDestroy {
       })
       .then(() => {
         this.pending = false;
+	this.newSharingIdRequired = true;
         this._changeDetectorRef.detectChanges();
       });
 
+  }
+
+  onApplyStylesClicked() {
+    this.newSharingIdRequired = true;
+    this.updateStyles();
   }
 
   updateStyles() {
