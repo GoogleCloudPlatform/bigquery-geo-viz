@@ -26,6 +26,7 @@ import { StyleRule } from '../services/styles.service';
 const SHARING_COLLECTION = 'GeoVizSharing';
 
 export interface ShareableData {
+  sharingVersion: string;
   projectId : string | undefined;
   jobId : string | undefined;
   location : string | undefined;

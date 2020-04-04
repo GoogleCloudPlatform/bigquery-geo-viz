@@ -45,13 +45,21 @@ mat-progress-spinner {
     vertical-align: middle;
 }
 
+.apply-style-button {
+    margin-top: 0.5em;
+}
+
+.create-share-link-button {
+    margin-bottom: 0.5em;
+}
+
 .preset-button {
     position: fixed;
     bottom: 2em;
     left: 6em;
     background: #00539b;
     z-index: 10000;
-}
+} 
 
 .share-button {
     position: fixed;

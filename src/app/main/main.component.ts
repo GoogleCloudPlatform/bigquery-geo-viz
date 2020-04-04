@@ -43,6 +43,7 @@ import {
   SAMPLE_FILL_OPACITY,
   MAX_RESULTS_PREVIEW,
   SAMPLE_CIRCLE_RADIUS,
+  SHARING_VERSION,
   MAX_RESULTS
 } from '../app.constants';
 
@@ -187,6 +188,7 @@ export class MainComponent implements OnInit, OnDestroy {
     const dataValues = this.dataFormGroup.getRawValue(); 
     const styleValues = this.styles;
     var shareableData = {
+      sharingVersion: SHARING_VERSION,
       projectId : dataValues.projectId,
       jobId : this.jobId,
       location: dataValues.location,
@@ -263,6 +265,9 @@ export class MainComponent implements OnInit, OnDestroy {
       } else if (this.sharingId) {
 	this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
 	  if (shareableValues) {
+	    if (shareableValues.sharingVersion != SHARING_VERSION) {
+	      throw new Error('Sharing link is invalid.');
+	    }
 	    this.dataFormGroup.patchValue({
 	      sql: '/* Loading sql query from job... */',
 	      projectId: shareableValues.projectId,
@@ -296,12 +301,8 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
-  onStepperClick(event) {
-    if (this.pending) {
-      this.sharingFormGroup.patchValue({
-	sharingUrl: 'Waiting for the query to finish';
-      });
-    } else if (this.stepIndex == Step.SHARE && this.stepperChanged && this.newSharingIdRequired) {
+  generateSharingUrl() {
+    if (this.stepIndex == Step.SHARE && this.stepperChanged && this.newSharingIdRequired) {
       this.sharingFormGroup.patchValue({
 	sharingUrl: 'Generating URL...'
       });

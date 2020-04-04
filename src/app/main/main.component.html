@@ -120,13 +120,25 @@
                   <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
                 </mat-expansion-panel>
               </mat-accordion>
-              <button mat-raised-button color="primary" (click)="onApplyStylesClicked()">Apply Style</button>
+              <button mat-raised-button color="primary" (click)="onApplyStylesClicked()" class="apply-style-button" >Apply Style</button>
             </form>
           </mat-step>
           <mat-step [stepControl]="sharingFormGroup" label="Share">
 	    <form [formGroup]="sharingFormGroup">
 	      <mat-form-field class="sql-form-field">
-	      URL:  
+		<p class="sql-caption"> <b>Please read before creating a link:</b> </p>
+		<ul class="sql-caption">
+		  <li> Creating a sharing link will save the project ID, BigQuery Job ID, and your styling rules (GeoViz does not store the SQL text or the underlying data from BigQuery). </li>
+		  <br>
+                  <li> Treat the link like a password:
+		    <ul>
+		    <br>
+		      <li> Anyone with the link can restore the styling rules. </li>
+		      <br>
+		      <li> The SQL for the BigQuery job is only available to those with sufficient access level to the GCP project that was used to run the job. </li>
+		    </ul>
+		</ul>
+                <button mat-raised-button color="primary" class="create-share-link-button" [disabled]="pending" (click)="generateSharingUrl()">Create Share Link</button>
 		<input type="text" matInput formControlName="sharingUrl" ([ngModel])="model" readonly>
 	      </mat-form-field>
 	    </form>
