@@ -121,7 +121,7 @@ export class MapComponent implements AfterViewInit {
           this.map.data.addListener('click', (e) => {
             this.showInfoWindow(e.feature, e.latLng);
           });
-          this._deckLayer = new GoogleMapsOverlay({ layers: [], useDevicePixels: false });
+          this._deckLayer = new GoogleMapsOverlay({ layers: [] });
           this._deckLayer.setMap(this.map);
           this.map.addListener('click', (e) => this._onClick(e));
         });
