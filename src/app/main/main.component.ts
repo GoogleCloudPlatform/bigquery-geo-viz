@@ -89,6 +89,8 @@ export class MainComponent implements OnInit, OnDestroy {
   table = '';
   jobId = '';
   location = '';
+  // This contains the query that ran in the job.
+  jobWrappedSql = '';
   bytesProcessed: number = 0;
   lintMessage = '';
   pending = false;
@@ -188,13 +190,14 @@ export class MainComponent implements OnInit, OnDestroy {
   saveDataToSharedStorage() {
     const dataValues = this.dataFormGroup.getRawValue(); 
     // Encrypt the style values using the sql string.
-    const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), dataValues.sql);
+    const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql);
     var shareableData = {
       sharingVersion: SHARING_VERSION,
       projectId : dataValues.projectId,
       jobId : this.jobId,
       location: dataValues.location,
-      styles: hashedStyleValues.toString()
+      styles: hashedStyleValues.toString(),
+      timestamp: Date.now()
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.sharingId = written_doc_id;
@@ -279,7 +282,7 @@ export class MainComponent implements OnInit, OnDestroy {
 	      this.dataFormGroup.patchValue({
 		sql: this.convertToUserQuery(queryText.sql),
 	      });
-	      const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, this.convertToUserQuery(queryText.sql))));
+	      const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql)));
 	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
 	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
 	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
@@ -455,8 +458,8 @@ ${USER_QUERY_END_MARKER}\n
       .then((dryRunResponse) => {
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
-        const wrappedSQL = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
-        return this.dataService.query(this.projectId, wrappedSQL, this.location);
+        this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
+        return this.dataService.query(this.projectId, this.jobWrappedSql, this.location);
       })
       .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobId }) => {
         this.columns = columns;

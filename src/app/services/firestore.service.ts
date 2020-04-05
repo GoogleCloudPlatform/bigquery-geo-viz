@@ -31,6 +31,7 @@ export interface ShareableData {
   jobId : string | undefined;
   location : string | undefined;
   styles: string;
+  timestamp: number;
 }
 
 /**
