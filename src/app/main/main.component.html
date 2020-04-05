@@ -27,7 +27,7 @@
     </mat-sidenav-content>
     <mat-sidenav #sidenav mode="side" position="start" [(opened)]="sideNavOpened">
       <section class="drawer">
-        <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" (click)="onStepperClick()" #stepper class="stepper">
+        <mat-vertical-stepper linear (selectionChange)="onStepperChange($event)" #stepper class="stepper">
           <mat-step [stepControl]="dataFormGroup" label="Query">
 
             <button *ngIf="!isSignedIn" mat-raised-button color="primary" (click)="signin()">Authorize</button>

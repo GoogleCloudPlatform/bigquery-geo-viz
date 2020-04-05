@@ -24,6 +24,7 @@ import { Subject } from 'rxjs/Subject';
 import { Subscription } from 'rxjs/Subscription';
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/map';
+import * as CryptoJS from "crypto-js";
 
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
@@ -186,13 +187,14 @@ export class MainComponent implements OnInit, OnDestroy {
 
   saveDataToSharedStorage() {
     const dataValues = this.dataFormGroup.getRawValue(); 
-    const styleValues = this.styles;
+    // Encrypt the style values using the sql string.
+    const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), dataValues.sql);
     var shareableData = {
       sharingVersion: SHARING_VERSION,
       projectId : dataValues.projectId,
       jobId : this.jobId,
       location: dataValues.location,
-      styles: styleValues
+      styles: hashedStyleValues.toString()
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.sharingId = written_doc_id;
@@ -277,15 +279,16 @@ export class MainComponent implements OnInit, OnDestroy {
 	      this.dataFormGroup.patchValue({
 		sql: this.convertToUserQuery(queryText.sql),
 	      });
-	    });
-	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, shareableValues.styles['fillColor'].domain.length);
-	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, shareableValues.styles['fillOpacity'].domain.length);
-	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, shareableValues.styles['strokeColor'].domain.length);
-	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, shareableValues.styles['strokeOpacity'].domain.length);
-	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, shareableValues.styles['strokeWeight'].domain.length);
-	    this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, shareableValues.styles['circleRadius'].domain.length);
-	    this.stylesFormGroup.patchValue(shareableValues.styles);
-	    this.updateStyles();
+	      const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, this.convertToUserQuery(queryText.sql))));
+	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
+	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
+	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
+	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, unencryptedStyles['strokeOpacity'].domain.length);
+	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, unencryptedStyles['strokeWeight'].domain.length);
+	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
+	      this.stylesFormGroup.patchValue(unencryptedStyles);
+	      this.updateStyles();
+	    }).catch((e) => this.showMessage("Cannot retrieve styling options."));
 	  }
 	}).catch((e) => this.showMessage(parseErrorMessage(e)));
       } else {
@@ -298,6 +301,12 @@ export class MainComponent implements OnInit, OnDestroy {
           });
         }
       }
+    });
+  }
+
+  clearGeneratedSharingUrl() {
+    this.sharingFormGroup.patchValue({
+      sharingUrl: ''
     });
   }
 
@@ -435,6 +444,10 @@ ${USER_QUERY_END_MARKER}\n
     const sql = dataFormValues.sql;
     this.location = dataFormValues.location;
     this.saveDataToLocalStorage(this.projectId, sql, this.location);
+    
+    // Clear the existing sharing URL.
+    this.clearGeneratedSharingUrl();
+    this.newSharingIdRequired = true;
 
     let geoColumns;
 
@@ -470,7 +483,6 @@ ${USER_QUERY_END_MARKER}\n
       })
       .then(() => {
         this.pending = false;
-	this.newSharingIdRequired = true;
         this._changeDetectorRef.detectChanges();
       });
 
@@ -484,6 +496,7 @@ ${USER_QUERY_END_MARKER}\n
   updateStyles() {
     if (this.stylesFormGroup.invalid) { return; }
     this.styles = this.stylesFormGroup.getRawValue();
+    this.clearGeneratedSharingUrl();
   }
 
   getRowWidth() {

@@ -30,7 +30,7 @@ export interface ShareableData {
   projectId : string | undefined;
   jobId : string | undefined;
   location : string | undefined;
-  styles: Array<StyleRule>;
+  styles: string;
 }
 
 /**
