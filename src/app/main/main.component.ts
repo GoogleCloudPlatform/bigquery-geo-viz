@@ -29,6 +29,7 @@ import * as CryptoJS from "crypto-js";
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
   BigQueryService,
+  BigQueryColumn,
   ColumnStat,
   Project,
   BigQueryDryRunResponse,
@@ -62,7 +63,7 @@ const USER_QUERY_END_MARKER = '--__USER__QUERY__END__';
 export class MainComponent implements OnInit, OnDestroy {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
-  readonly projectIdRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
+  readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
   readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
@@ -85,7 +86,7 @@ export class MainComponent implements OnInit, OnDestroy {
   columns: Array<Object>;
   columnNames: Array<string>;
   geoColumnNames: Array<string>;
-  projectId = '';
+  projectID = '';
   dataset = '';
   table = '';
   jobID = '';
@@ -149,7 +150,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.rows = [];
 
     // Read parameters from URL
-    this.projectId = this._route.snapshot.paramMap.get("project");
+    this.projectID = this._route.snapshot.paramMap.get("project");
     this.dataset = this._route.snapshot.paramMap.get("dataset");
     this.table = this._route.snapshot.paramMap.get("table");
     this.jobID = this._route.snapshot.paramMap.get("job");
@@ -158,15 +159,15 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
-      projectId: ['', Validators.required],
+      projectID: ['', Validators.required],
       sql: ['', Validators.required],
       location: [''],
     });
-    this.dataFormGroup.controls.projectId.valueChanges.debounceTime(200).subscribe(() => {
+    this.dataFormGroup.controls.projectID.valueChanges.debounceTime(200).subscribe(() => {
       this.dataService.getProjects()
         .then((projects) => {
           this.matchingProjects = projects.filter((project) => {
-            return project['id'].indexOf(this.dataFormGroup.controls.projectId.value) >= 0;
+            return project['id'].indexOf(this.dataFormGroup.controls.projectID.value) >= 0;
           });
         });
     });
@@ -194,7 +195,7 @@ export class MainComponent implements OnInit, OnDestroy {
     const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql + this.bytesProcessed);
     var shareableData = {
       sharingVersion: SHARING_VERSION,
-      projectId : dataValues.projectId,
+      projectID : dataValues.projectID,
       jobID : this.jobID,
       location: dataValues.location,
       styles: hashedStyleValues.toString(),
@@ -209,11 +210,11 @@ export class MainComponent implements OnInit, OnDestroy {
     return this.storageService.getSharedData(this.sharingId);
   }
 
-  saveDataToLocalStorage(projectId : string, sql : string, location : string) {
-    this._storage.set(this.localStorageKey, {projectId: projectId, sql: sql, location: location});
+  saveDataToLocalStorage(projectID : string, sql : string, location : string) {
+    this._storage.set(this.localStorageKey, {projectID: projectID, sql: sql, location: location});
   }
 
-  loadDataFromLocalStorage() : {projectId : string, sql : string, location : string} {
+  loadDataFromLocalStorage() : {projectID : string, sql : string, location : string} {
     return this._storage.get(this.localStorageKey);
   }
 
@@ -255,19 +256,19 @@ export class MainComponent implements OnInit, OnDestroy {
       if (this._hasJobParams() && this._jobParamsValid()) {
         this.dataFormGroup.patchValue({
           sql: '/* Loading sql query from job... */',
-          projectId: this.projectId,
+          projectID: this.projectID,
           location: this.location
         });
 
-        this.dataService.getQueryFromJob(this.jobID, this.location, this.projectId).then((queryText) => {
+        this.dataService.getQueryFromJob(this.jobID, this.location, this.projectID).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
           });
         });
       } else if (this._hasTableParams() && this._tableParamsValid()) {
         this.dataFormGroup.patchValue({
-          sql: `SELECT * FROM \`${this.projectId}.${this.dataset}.${this.table}\`;`,
-          projectId: this.projectId,
+          sql: `SELECT * FROM \`${this.projectID}.${this.dataset}.${this.table}\`;`,
+          projectID: this.projectID,
         });
       } else if (this.sharingId) {
 	this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
@@ -277,10 +278,10 @@ export class MainComponent implements OnInit, OnDestroy {
 	    }
 	    this.dataFormGroup.patchValue({
 	      sql: '/* Loading sql query from job... */',
-	      projectId: shareableValues.projectId,
+	      projectID: shareableValues.projectID,
 	      location: shareableValues.location
 	    });
-	    this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectId).then((queryText) => {
+	    this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectID).then((queryText) => {
 	      this.dataFormGroup.patchValue({
 		sql: this.convertToUserQuery(queryText.sql),
 	      });
@@ -301,7 +302,7 @@ export class MainComponent implements OnInit, OnDestroy {
         if (localStorageValues) {
           this.dataFormGroup.patchValue({
             sql: localStorageValues.sql,
-            projectId: localStorageValues.projectId,
+            projectID: localStorageValues.projectID,
             location: localStorageValues.location
           });
         }
@@ -344,27 +345,27 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _hasJobParams(): boolean {
-    return !!(this.jobID && this.project);
+    return !!(this.jobID && this.projectID);
   }
 
   _hasTableParams(): boolean {
-    return !!(this.project && this.dataset && this.table);
+    return !!(this.projectID && this.dataset && this.table);
   }
 
   _jobParamsValid(): boolean {
-    return this.projectIDRegExp.test(this.project) &&
+    return this.projectIDRegExp.test(this.projectID) &&
       this.jobIDRegExp.test(this.jobID);
   }
   _tableParamsValid(): boolean {
-    return this.projectIdRegExp.test(this.projectId) &&
+    return this.projectIDRegExp.test(this.projectID) &&
       this.datasetIDRegExp.test(this.dataset) &&
       this.tableIDRegExp.test(this.table);
   }
 
   _dryRun(): Promise<BigQueryDryRunResponse> {
-    const { projectId, sql, location } = this.dataFormGroup.getRawValue();
-    if (!projectId) return;
-    const dryRun = this.dataService.prequery(projectId, sql, location)
+    const { projectID, sql, location } = this.dataFormGroup.getRawValue();
+    if (!projectID) return;
+    const dryRun = this.dataService.prequery(projectID, sql, location)
       .then((response: BigQueryDryRunResponse) => {
         if (!response.ok) throw new Error('Query analysis failed.');
         const geoColumn = response.schema.fields.find((f) => f.type === 'GEOGRAPHY');
@@ -385,18 +386,18 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   // 'count' is used to track the number of request. Each request is 10MB.
-  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string): Promise<BigQueryResponse> {
+  getResults(count: number, projectID: string, inputPageToken: string, location: string, jobID: string): Promise<BigQueryResponse> {
     if (!inputPageToken || count >= MAX_PAGES) {
       // Force an update feature here since everything is done.
-      this.rows = this.rows.slice();
+      this.rows = this.rows.slice(0);
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
+    return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
       this.rows.push(...rows);
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
-      return this.getResults(count, projectId, pageToken, location, jobID);
+      return this.getResults(count, projectID, pageToken, location, jobID);
     });
   }
 
@@ -443,10 +444,10 @@ ${USER_QUERY_END_MARKER}\n
     // We will save the query information to local store to be restored next
     // time that the app is launched.
     const dataFormValues = this.dataFormGroup.getRawValue();
-    this.projectId = dataFormValues.projectId;
+    this.projectID = dataFormValues.projectID;
     const sql = dataFormValues.sql;
     this.location = dataFormValues.location;
-    this.saveDataToLocalStorage(this.projectId, sql, this.location);
+    this.saveDataToLocalStorage(this.projectID, sql, this.location);
     
     // Clear the existing sharing URL.
     this.clearGeneratedSharingUrl();
@@ -460,7 +461,7 @@ ${USER_QUERY_END_MARKER}\n
 
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
         this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
-        return this.dataService.query(this.projectId, this.jobWrappedSql, this.location);
+        return this.dataService.query(this.projectID, this.jobWrappedSql, this.location);
       })
       .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed }) => {
         this.columns = columns;
@@ -473,7 +474,7 @@ ${USER_QUERY_END_MARKER}\n
         this.totalRows = totalRows;
 	      this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
-        return this.getResults(0, this.projectId, pageToken, this.location, jobID);
+        return this.getResults(0, this.projectID, pageToken, this.location, jobID);
       })                                                                 
       .catch((e) => {
         const error = e && e.result && e.result.error || {};

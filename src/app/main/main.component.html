@@ -34,7 +34,7 @@
 
             <form *ngIf="isSignedIn" [formGroup]="dataFormGroup">
               <mat-form-field class="sql-form-field">
-                <input type="text" placeholder="Project ID" matInput formControlName="projectId" ([ngModel])="model" [matAutocomplete]="auto">
+                <input type="text" placeholder="Project ID" matInput formControlName="projectID" ([ngModel])="model" [matAutocomplete]="auto">
                 <mat-autocomplete #auto="matAutocomplete">
                   <mat-option *ngFor="let project of matchingProjects" [value]="project.id">
                     {{ project.id }}
