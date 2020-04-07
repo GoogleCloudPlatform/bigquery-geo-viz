@@ -25,6 +25,8 @@ const LAYER_ID = 'geojson-layer';
 
 const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 
+const DEFAULT_BATCH_SIZE = 5;
+
 @Component({
   selector: 'app-map',
   templateUrl: './map.component.html',
@@ -55,7 +57,7 @@ export class MapComponent implements AfterViewInit {
   // Detects how many times we have received new values.      
   private _numChanges = 0;
   // Counts after how many changes we should update the map.
-  private _batchSize = 5;
+  private _batchSize = DEFAULT_BATCH_SIZE;
 
   private _deckLayer: GoogleMapsOverlay = null;
   private _iterableDiffer = null;
@@ -63,6 +65,7 @@ export class MapComponent implements AfterViewInit {
   @Input()
   set rows(rows: object[]) {
     this._rows = rows;
+    this.resetBatching();
     this.updateFeatures();
     this.updateStyles();
   }
@@ -138,6 +141,11 @@ export class MapComponent implements AfterViewInit {
     if (picked) {
       this.showInfoWindow(picked.object, e.latLng);
     }
+  }
+
+  private resetBatching() {
+    this._numChanges = 0;
+    this._batchSize = DEFAULT_BATCH_SIZE;
   }
 
   /**
