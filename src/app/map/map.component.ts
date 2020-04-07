@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit, IterableDiffers, IterableDiffer } from '@angular/core';
 import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
@@ -24,6 +24,8 @@ import { GeoJSONService, GeoJSONFeature } from '../services/geojson.service';
 const LAYER_ID = 'geojson-layer';
 
 const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
+
+const DEFAULT_BATCH_SIZE = 5;
 
 @Component({
   selector: 'app-map',
@@ -52,11 +54,18 @@ export class MapComponent implements AfterViewInit {
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
 
+  // Detects how many times we have received new values.      
+  private _numChanges = 0;
+  // Counts after how many changes we should update the map.
+  private _batchSize = DEFAULT_BATCH_SIZE;
+
   private _deckLayer: GoogleMapsOverlay = null;
+  private _iterableDiffer = null;
 
   @Input()
   set rows(rows: object[]) {
     this._rows = rows;
+    this.resetBatching();
     this.updateFeatures();
     this.updateStyles();
   }
@@ -74,16 +83,31 @@ export class MapComponent implements AfterViewInit {
     this.updateStyles();
   }
 
-  constructor(private _ngZone: NgZone) {
-    this.pendingStyles = fetch('assets/basemap.json', {credentials: 'include'})
+  constructor(private _ngZone: NgZone, iterableDiffers: IterableDiffers) {
+    this._iterableDiffer = iterableDiffers.find([]).create(null);
+    this.pendingStyles = fetch('assets/basemap.json', { credentials: 'include' })
       .then((response) => response.json());
   }
 
+  ngDoCheck() {
+    let changes = this._iterableDiffer.diff(this._rows);
+    if (changes) {
+      this._numChanges++;
+      if (this._numChanges >= this._batchSize) {
+        this.updateFeatures();
+        this.updateStyles();
+        this._numChanges = 0;
+        // Increase the batch size incrementally to keep the overhead low.
+        this._batchSize = this._batchSize * 1.5;
+      }
+    }
+  }
+
   /**
-   * Constructs a Maps API instance after DOM has initialized.
-   */
+     * Constructs a Maps API instance after DOM has initialized.
+     */
   ngAfterViewInit() {
-    Promise.all([ pendingMap, this.pendingStyles ])
+    Promise.all([pendingMap, this.pendingStyles])
       .then(([_, mapStyles]) => {
         // Initialize Maps API outside of the Angular zone. Maps API binds event listeners,
         // and we do NOT want Angular to trigger change detection on these events. Ensuring
@@ -119,6 +143,11 @@ export class MapComponent implements AfterViewInit {
     }
   }
 
+  private resetBatching() {
+    this._numChanges = 0;
+    this._batchSize = DEFAULT_BATCH_SIZE;
+  }
+
   /**
    * Converts row objects into GeoJSON, then loads into Maps API.
    */
@@ -134,7 +163,7 @@ export class MapComponent implements AfterViewInit {
     });
 
     // Fit viewport bounds to the data.
-    const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features: this._features});
+    const [minX, minY, maxX, maxY] = bbox({ type: 'FeatureCollection', features: this._features });
     const bounds = new google.maps.LatLngBounds(
       new google.maps.LatLng(minY, minX),
       new google.maps.LatLng(maxY, maxX)
@@ -190,7 +219,7 @@ export class MapComponent implements AfterViewInit {
    * @param feature
    * @param style
    */
-  getStyle (feature, styles: StyleRule[], styleName: string) {
+  getStyle(feature, styles: StyleRule[], styleName: string) {
     return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
   }
 
@@ -199,14 +228,14 @@ export class MapComponent implements AfterViewInit {
    * @param styles
    * @param styleName
    */
-  hasStyle (styles: StyleRule[], styleName: string): boolean {
+  hasStyle(styles: StyleRule[], styleName: string): boolean {
     const rule = styles[styleName];
     if (!rule) return false;
     if (!rule.isComputed) return !!rule.value || rule.value === '0';
     return rule.property && rule.function;
   }
 
-  hasStroke () {
+  hasStroke() {
     return this._activeGeometryTypes.has('LineString')
       || this._activeGeometryTypes.has('MultiLineString')
       || this._activeGeometryTypes.has('Polygon')
@@ -218,7 +247,7 @@ export class MapComponent implements AfterViewInit {
    * @param feature
    * @param latLng
    */
-  showInfoWindow (feature: GeoJSONFeature, latLng: google.maps.LatLng) {
+  showInfoWindow(feature: GeoJSONFeature, latLng: google.maps.LatLng) {
     this.infoWindow.setContent(`<pre>${JSON.stringify(feature.properties, null, 2)}</pre>`);
     this.infoWindow.open(this.map);
     this.infoWindow.setPosition(latLng);

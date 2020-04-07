@@ -120,7 +120,7 @@
                   <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
                 </mat-expansion-panel>
               </mat-accordion>
-
+              <button mat-raised-button color="primary" (click)="updateStyles()">Apply Style</button>
             </form>
           </mat-step>
         </mat-vertical-stepper>
