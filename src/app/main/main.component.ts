@@ -199,7 +199,7 @@ export class MainComponent implements OnInit, OnDestroy {
       jobID : this.jobID,
       location: dataValues.location,
       styles: hashedStyleValues.toString(),
-      expiration_timestamp_ms: Date.now()
+      creation_timestamp_ms: Date.now()
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.sharingId = written_doc_id;
