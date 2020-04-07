@@ -247,6 +247,7 @@ export class MainComponent implements OnInit, OnDestroy {
       this.isSignedIn = this.dataService.isSignedIn;
       if (!this.dataService.isSignedIn) { return; }
       this.user = this.dataService.getUser();
+      this.storageService.authorize(this.dataService.getCredential());
       this.dataService.getProjects()
         .then((projects) => {
           this.matchingProjects = projects;

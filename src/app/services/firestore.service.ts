@@ -72,4 +72,12 @@ export class FirestoreService {
       return doc.data() as ShareableData;
     });
   }
+
+  authorize(credential: object) {
+    const firebase_credential = firebase.auth.GoogleAuthProvider.credential(
+      credential['id_token'],
+      credential['access_token']
+    );
+    firebase.auth().signInWithCredential(firebase_credential)
+  }
 }

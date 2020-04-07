@@ -111,6 +111,17 @@ export class BigQueryService {
   }
 
   /**
+   * Returns current user credentials.
+   */
+  getCredential(): Object {
+    let authResponse =  gapi['auth2'].getAuthInstance().currentUser.get().getAuthResponse(true);
+    if (authResponse) {
+      return { id_token: authResponse.id_token, access_token: authResponse.access_token };
+    }
+    return null;
+  }
+
+  /**
    * Attempts session login.
    */
   signin() {
@@ -121,6 +132,7 @@ export class BigQueryService {
    * Logs out of current session.
    */
   signout() {
+    this.isSignedIn = false;
     gapi['auth2'].getAuthInstance().signOut().then(() => this.signinChangeCallback());
   }
 
