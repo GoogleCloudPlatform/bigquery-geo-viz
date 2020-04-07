@@ -64,7 +64,7 @@ export class MainComponent implements OnInit, OnDestroy {
   readonly projectIdRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
-  readonly jobIdRegExp = new RegExp('[a-z0-9_-]*$', 'i');
+  readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
   readonly localStorageKey = 'execution_local_storage_key';
 
   // GCP session data
@@ -87,7 +87,7 @@ export class MainComponent implements OnInit, OnDestroy {
   projectId = '';
   dataset = '';
   table = '';
-  jobId = '';
+  jobID = '';
   location = '';
   // This contains the query that ran in the job.
   jobWrappedSql = '';
@@ -151,7 +151,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.projectId = this._route.snapshot.paramMap.get("project");
     this.dataset = this._route.snapshot.paramMap.get("dataset");
     this.table = this._route.snapshot.paramMap.get("table");
-    this.jobId = this._route.snapshot.paramMap.get("job");
+    this.jobID = this._route.snapshot.paramMap.get("job");
     this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
     this.sharingId = this._route.snapshot.queryParams["shareid"];
 
@@ -190,14 +190,14 @@ export class MainComponent implements OnInit, OnDestroy {
   saveDataToSharedStorage() {
     const dataValues = this.dataFormGroup.getRawValue(); 
     // Encrypt the style values using the sql string.
-    const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql);
+    const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql + this.bytesProcessed);
     var shareableData = {
       sharingVersion: SHARING_VERSION,
       projectId : dataValues.projectId,
-      jobId : this.jobId,
+      jobID : this.jobID,
       location: dataValues.location,
       styles: hashedStyleValues.toString(),
-      timestamp: Date.now()
+      expiration_timestamp_ms: Date.now()
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.sharingId = written_doc_id;
@@ -257,7 +257,7 @@ export class MainComponent implements OnInit, OnDestroy {
           projectId: this.projectId,
           location: this.location
         });
-        this.dataService.getQueryFromJob(this.jobId, this.location, this.projectId).then((queryText) => {
+        this.dataService.getQueryFromJob(this.jobID, this.location, this.projectId).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
           });
@@ -278,11 +278,11 @@ export class MainComponent implements OnInit, OnDestroy {
 	      projectId: shareableValues.projectId,
 	      location: shareableValues.location
 	    });
-	    this.dataService.getQueryFromJob(shareableValues.jobId, shareableValues.location, shareableValues.projectId).then((queryText) => {
+	    this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectId).then((queryText) => {
 	      this.dataFormGroup.patchValue({
 		sql: this.convertToUserQuery(queryText.sql),
 	      });
-	      const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql)));
+	      const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
 	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
 	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
 	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
@@ -342,7 +342,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _hasJobParams() : boolean {
-    return !!(this.jobId && this.projectId);
+    return !!(this.jobID && this.projectId);
   }
 
   _hasTableParams() : boolean {
@@ -351,7 +351,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   _jobParamsValid(): boolean {
     return this.projectIdRegExp.test(this.projectId) &&
-           this.jobIdRegExp.test(this.jobId);
+           this.jobIDRegExp.test(this.jobID);
   }
   _tableParamsValid(): boolean {
     return this.projectIdRegExp.test(this.projectId) &&
@@ -383,20 +383,18 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   // 'count' is used to track the number of request. Each request is 10MB, so we are limiting the total to 250 MB.
-  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobId: string)  : Promise<BigQueryResponse> {
+  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string)  : Promise<BigQueryResponse> {
     if (!inputPageToken || count >= 25) {
       // Force an update feature here since everything is done.
-      var localRows : Array<Object> = [];
-      localRows.push(...this.rows);
-      this.rows = localRows;
+      this.rows = this.rows.slice();
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectId, jobId, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => { 
+    return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => { 
       this.rows.push(...rows);                                                                                      
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
-      return this.getResults(count, projectId, pageToken, location, jobId);
+      return this.getResults(count, projectId, pageToken, location, jobID);
     });
   }
 
@@ -461,7 +459,7 @@ ${USER_QUERY_END_MARKER}\n
         this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
         return this.dataService.query(this.projectId, this.jobWrappedSql, this.location);
       })
-      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobId }) => {
+      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name)
@@ -470,8 +468,9 @@ ${USER_QUERY_END_MARKER}\n
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
         this.totalRows = totalRows;
-	this.jobId = jobId;
-        return this.getResults(0, this.projectId, pageToken, this.location, jobId);
+	this.jobID = jobID;
+        this.bytesProcessed = totalBytesProcessed;
+        return this.getResults(0, this.projectId, pageToken, this.location, jobID);
       })                                                                 
       .catch((e) => {
         const error = e && e.result && e.result.error || {};

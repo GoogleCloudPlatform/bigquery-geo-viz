@@ -39,6 +39,7 @@ export interface Project {
 
 export interface Query {
   sql: string;
+  bytesProcessed: number;
 }
 
 export interface BigQueryColumn {
@@ -66,7 +67,8 @@ export interface BigQueryResponse {
   totalRows : number;
   stats: Map<String, ColumnStat> | undefined;
   pageToken: string | undefined;
-  jobId: string | undefined;
+  jobID: string | undefined;
+  totalBytesProcessed?: number;
 }
 
 /**
@@ -159,7 +161,7 @@ export class BigQueryService {
       if (response.result.statistics.query.statementType != 'SELECT') {
         throw new Error('Job id is not for a SELECT statement.');
       }
-      return {sql: response.result.configuration.query.query};
+      return {sql: response.result.configuration.query.query, bytesProcessed: Number(response.result.statistics.query.totalBytesProcessed)};
     });
   }
 
@@ -220,7 +222,7 @@ export class BigQueryService {
     });
   }
 
-  getResults(projectID: string, jobId: string, location: string, pageToken: string, normalized_cols: Array<Object>, stats: Map<String, ColumnStat>): Promise<BigQueryResponse> {
+  getResults(projectID: string, jobID: string, location: string, pageToken: string, normalized_cols: Array<Object>, stats: Map<String, ColumnStat>): Promise<BigQueryResponse> {
     const body = {
       maxResults: MAX_RESULTS,
       timeoutMs: TIMEOUT_MS,
@@ -228,7 +230,7 @@ export class BigQueryService {
     };
     if (location) { body['location'] = location; }
 	return gapi.client.request({
-	  path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobId}`,
+	  path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobID}`,
 	  method: 'GET',
 	  params: body,
 	}).then((response) => {
@@ -283,7 +285,8 @@ export class BigQueryService {
  
       const totalRows = Number(response.result.totalRows);
       
-      return {columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobId: response.result.jobReference.jobId} as BigQueryResponse;
+      return {columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobID: response.result.jobReference.jobId,
+	      totalBytesProcessed: Number(response.result.totalBytesProcessed)} as BigQueryResponse;
     });
   }
 }

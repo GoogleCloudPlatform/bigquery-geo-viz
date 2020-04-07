@@ -28,10 +28,10 @@ const SHARING_COLLECTION = 'GeoVizSharing';
 export interface ShareableData {
   sharingVersion: string;
   projectId : string | undefined;
-  jobId : string | undefined;
+  jobID : string | undefined;
   location : string | undefined;
   styles: string;
-  timestamp: number;
+  expiration_timestamp_ms: number;
 }
 
 /**
