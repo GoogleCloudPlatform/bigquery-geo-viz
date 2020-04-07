@@ -80,7 +80,7 @@ export class MapComponent implements AfterViewInit {
     this.updateStyles();
   }
 
-  constructor(private _ngZone: NgZone, private iterableDiffers: IterableDiffers) {
+  constructor(private _ngZone: NgZone, iterableDiffers: IterableDiffers) {
     this._iterableDiffer = iterableDiffers.find([]).create(null);
     this.pendingStyles = fetch('assets/basemap.json', {credentials: 'include'})
       .then((response) => response.json());
@@ -157,10 +157,10 @@ export class MapComponent implements AfterViewInit {
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features: this._features});
     const bounds = new google.maps.LatLngBounds(
-     new google.maps.LatLng(minY, minX),
-     new google.maps.LatLng(maxY, maxX)
-   );
-   if (!bounds.isEmpty()) { this.map.fitBounds(bounds); }
+      new google.maps.LatLng(minY, minX),
+      new google.maps.LatLng(maxY, maxX)
+    );
+    if (!bounds.isEmpty()) { this.map.fitBounds(bounds); }
   }
 
   /**

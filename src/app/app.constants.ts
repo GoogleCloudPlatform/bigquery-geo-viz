@@ -44,6 +44,9 @@ FROM \`bigquery-public-data.new_york_trees.tree_census_2015\`
 WHERE status = 'Alive'
 LIMIT 50000;`;
 
+// Each page is 10MB. This means the total data will be 250MB at most..
+export const MAX_PAGES = 25;
+
 export const SAMPLE_FILL_OPACITY = {isComputed: false, value: 0.8};
 export const SAMPLE_FILL_COLOR = {
   isComputed: true,

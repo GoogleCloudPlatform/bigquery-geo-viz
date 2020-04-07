@@ -40,7 +40,8 @@ import {
   SAMPLE_FILL_OPACITY,
   MAX_RESULTS_PREVIEW,
   SAMPLE_CIRCLE_RADIUS,
-  MAX_RESULTS
+  MAX_RESULTS,
+  MAX_PAGES
 } from '../app.constants';
 
 const DEBOUNCE_MS = 1000;
@@ -57,7 +58,7 @@ export class MainComponent implements OnInit, OnDestroy {
   readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
-  readonly jobIdRegExp = new RegExp('[a-z0-9_-]*$', 'i');
+  readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
   readonly localStorageKey = 'execution_local_storage_key';
 
   // GCP session data
@@ -78,7 +79,7 @@ export class MainComponent implements OnInit, OnDestroy {
   project = '';
   dataset = '';
   table = '';
-  jobId = '';
+  jobID = '';
   location = '';
   bytesProcessed: number = 0;
   lintMessage = '';
@@ -135,7 +136,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.project = this._route.snapshot.paramMap.get("project");
     this.dataset = this._route.snapshot.paramMap.get("dataset");
     this.table = this._route.snapshot.paramMap.get("table");
-    this.jobId = this._route.snapshot.paramMap.get("job");
+    this.jobID = this._route.snapshot.paramMap.get("job");
     this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
 
     // Data form group
@@ -214,7 +215,7 @@ export class MainComponent implements OnInit, OnDestroy {
           projectID: this.project,
           location: this.location
         });
-        this.dataService.getQueryFromJob(this.jobId, this.location, this.project).then((queryText) => {
+        this.dataService.getQueryFromJob(this.jobID, this.location, this.project).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
           });
@@ -247,7 +248,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _hasJobParams() : boolean {
-    return !!(this.jobId && this.project);
+    return !!(this.jobID && this.project);
   }
 
   _hasTableParams() : boolean {
@@ -256,7 +257,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   _jobParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
-           this.jobIdRegExp.test(this.jobId);
+           this.jobIDRegExp.test(this.jobID);
   }
   _tableParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
@@ -287,21 +288,19 @@ export class MainComponent implements OnInit, OnDestroy {
     return dryRun;
   }
 
-  // 'count' is used to track the number of request. Each request is 10MB, so we are limiting the total to 250 MB.
-  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobId: string)  : Promise<BigQueryResponse> {
-    if (!inputPageToken || count >= 25) {
+  // 'count' is used to track the number of request. Each request is 10MB.
+  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string)  : Promise<BigQueryResponse> {
+    if (!inputPageToken || count >= MAX_PAGES) {
       // Force an update feature here since everything is done.
-      var localRows : Array<Object> = [];
-      localRows.push(...this.rows);
-      this.rows = localRows;
+      this.rows = this.rows.slice(0);
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectId, jobId, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => { 
+    return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
       this.rows.push(...rows);                                                                                      
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
-      return this.getResults(count, projectId, pageToken, location, jobId);
+      return this.getResults(count, projectId, pageToken, location, jobID);
     });
   }
 
@@ -331,7 +330,7 @@ export class MainComponent implements OnInit, OnDestroy {
           FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
         return this.dataService.query(projectID, wrappedSQL, location);
       })
-      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobId }) => {
+      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name)
@@ -340,7 +339,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
         this.totalRows = totalRows;
-        return this.getResults(0, projectID, pageToken, location, jobId);
+        return this.getResults(0, projectID, pageToken, location, jobID);
       })                                                                 
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
