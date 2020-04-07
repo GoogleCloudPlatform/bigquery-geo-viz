@@ -28,12 +28,11 @@ import * as CryptoJS from "crypto-js";
 
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
-    BigQueryService,
-    BigQueryColumn,
-    ColumnStat,
-    Project,
-    BigQueryDryRunResponse,
-    BigQueryResponse
+  BigQueryService,
+  ColumnStat,
+  Project,
+  BigQueryDryRunResponse,
+  BigQueryResponse
 } from '../services/bigquery.service';
 
 import { FirestoreService, ShareableData } from '../services/firestore.service'
@@ -45,7 +44,9 @@ import {
   MAX_RESULTS_PREVIEW,
   SAMPLE_CIRCLE_RADIUS,
   SHARING_VERSION,
-  MAX_RESULTS
+  MAX_RESULTS,
+  MAX_PAGES
+
 } from '../app.constants';
 
 const DEBOUNCE_MS = 1000;
@@ -257,6 +258,7 @@ export class MainComponent implements OnInit, OnDestroy {
           projectId: this.projectId,
           location: this.location
         });
+
         this.dataService.getQueryFromJob(this.jobID, this.location, this.projectId).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
@@ -341,17 +343,17 @@ export class MainComponent implements OnInit, OnDestroy {
     this.cmDebouncer.next();
   }
 
-  _hasJobParams() : boolean {
-    return !!(this.jobID && this.projectId);
+  _hasJobParams(): boolean {
+    return !!(this.jobID && this.project);
   }
 
-  _hasTableParams() : boolean {
-    return !!(this.projectId && this.dataset && this.table);
+  _hasTableParams(): boolean {
+    return !!(this.project && this.dataset && this.table);
   }
 
   _jobParamsValid(): boolean {
-    return this.projectIdRegExp.test(this.projectId) &&
-           this.jobIDRegExp.test(this.jobID);
+    return this.projectIDRegExp.test(this.project) &&
+      this.jobIDRegExp.test(this.jobID);
   }
   _tableParamsValid(): boolean {
     return this.projectIdRegExp.test(this.projectId) &&
@@ -382,16 +384,16 @@ export class MainComponent implements OnInit, OnDestroy {
     return dryRun;
   }
 
-  // 'count' is used to track the number of request. Each request is 10MB, so we are limiting the total to 250 MB.
-  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string)  : Promise<BigQueryResponse> {
-    if (!inputPageToken || count >= 25) {
+  // 'count' is used to track the number of request. Each request is 10MB.
+  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string): Promise<BigQueryResponse> {
+    if (!inputPageToken || count >= MAX_PAGES) {
       // Force an update feature here since everything is done.
       this.rows = this.rows.slice();
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => { 
-      this.rows.push(...rows);                                                                                      
+    return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
+      this.rows.push(...rows);
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
       return this.getResults(count, projectId, pageToken, location, jobID);
@@ -455,6 +457,7 @@ ${USER_QUERY_END_MARKER}\n
     this._dryRun()
       .then((dryRunResponse) => {
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
+
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
         this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
         return this.dataService.query(this.projectId, this.jobWrappedSql, this.location);
@@ -462,13 +465,13 @@ ${USER_QUERY_END_MARKER}\n
       .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed }) => {
         this.columns = columns;
         this.columnNames = columnNames;
-        this.geoColumnNames = geoColumns.map((f) => f.name)
-	this.rows = rows;                                                                                      
+        this.geoColumnNames = geoColumns.map((f) => f.name);
+        this.rows = rows;
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
-        this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
+        this.schemaFormGroup.patchValue({ geoColumn: geoColumns[0].name });
         this.totalRows = totalRows;
-	this.jobID = jobID;
+	      this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
         return this.getResults(0, this.projectId, pageToken, this.location, jobID);
       })                                                                 
@@ -579,7 +582,7 @@ ${USER_QUERY_END_MARKER}\n
   }
 }
 
-function parseErrorMessage (e, defaultMessage = 'Something went wrong') {
+function parseErrorMessage(e, defaultMessage = 'Something went wrong') {
   if (e.message) { return e.message; }
   if (e.result && e.result.error && e.result.error.message) {
     return e.result.error.message;
