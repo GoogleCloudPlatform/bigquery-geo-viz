@@ -82,29 +82,29 @@ export class MapComponent implements AfterViewInit {
 
   constructor(private _ngZone: NgZone, iterableDiffers: IterableDiffers) {
     this._iterableDiffer = iterableDiffers.find([]).create(null);
-    this.pendingStyles = fetch('assets/basemap.json', {credentials: 'include'})
+    this.pendingStyles = fetch('assets/basemap.json', { credentials: 'include' })
       .then((response) => response.json());
   }
 
   ngDoCheck() {
-    let changes = this._iterableDiffer.diff(this._rows);      
+    let changes = this._iterableDiffer.diff(this._rows);
     if (changes) {
-      this._numChanges++;     
-        if (this._numChanges >= this._batchSize) {
-         this.updateFeatures();
-         this.updateStyles();
-         this._numChanges = 0;
-	 // Increase the batch size incrementally to keep the overhead low.
-         this._batchSize = this._batchSize * 1.5;
+      this._numChanges++;
+      if (this._numChanges >= this._batchSize) {
+        this.updateFeatures();
+        this.updateStyles();
+        this._numChanges = 0;
+        // Increase the batch size incrementally to keep the overhead low.
+        this._batchSize = this._batchSize * 1.5;
       }
-    } 
+    }
   }
 
-/**
-   * Constructs a Maps API instance after DOM has initialized.
-   */
+  /**
+     * Constructs a Maps API instance after DOM has initialized.
+     */
   ngAfterViewInit() {
-    Promise.all([ pendingMap, this.pendingStyles ])
+    Promise.all([pendingMap, this.pendingStyles])
       .then(([_, mapStyles]) => {
         // Initialize Maps API outside of the Angular zone. Maps API binds event listeners,
         // and we do NOT want Angular to trigger change detection on these events. Ensuring
@@ -155,7 +155,7 @@ export class MapComponent implements AfterViewInit {
     });
 
     // Fit viewport bounds to the data.
-    const [minX, minY, maxX, maxY] = bbox({type: 'FeatureCollection', features: this._features});
+    const [minX, minY, maxX, maxY] = bbox({ type: 'FeatureCollection', features: this._features });
     const bounds = new google.maps.LatLngBounds(
       new google.maps.LatLng(minY, minX),
       new google.maps.LatLng(maxY, maxX)
@@ -202,7 +202,7 @@ export class MapComponent implements AfterViewInit {
       getLineWidth: (d) => this.getStyle(d, this._styles, 'strokeWeight'),
       getRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
     });
-    
+
     this._deckLayer.setProps({ layers: [layer] });
   }
 
@@ -211,7 +211,7 @@ export class MapComponent implements AfterViewInit {
    * @param feature
    * @param style
    */
-  getStyle (feature, styles: StyleRule[], styleName: string) {
+  getStyle(feature, styles: StyleRule[], styleName: string) {
     return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
   }
 
@@ -220,14 +220,14 @@ export class MapComponent implements AfterViewInit {
    * @param styles
    * @param styleName
    */
-  hasStyle (styles: StyleRule[], styleName: string): boolean {
+  hasStyle(styles: StyleRule[], styleName: string): boolean {
     const rule = styles[styleName];
     if (!rule) return false;
     if (!rule.isComputed) return !!rule.value || rule.value === '0';
     return rule.property && rule.function;
   }
 
-  hasStroke () {
+  hasStroke() {
     return this._activeGeometryTypes.has('LineString')
       || this._activeGeometryTypes.has('MultiLineString')
       || this._activeGeometryTypes.has('Polygon')
@@ -239,7 +239,7 @@ export class MapComponent implements AfterViewInit {
    * @param feature
    * @param latLng
    */
-  showInfoWindow (feature: GeoJSONFeature, latLng: google.maps.LatLng) {
+  showInfoWindow(feature: GeoJSONFeature, latLng: google.maps.LatLng) {
     this.infoWindow.setContent(`<pre>${JSON.stringify(feature.properties, null, 2)}</pre>`);
     this.infoWindow.open(this.map);
     this.infoWindow.setPosition(latLng);
