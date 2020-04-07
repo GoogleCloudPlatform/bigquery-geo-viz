@@ -27,11 +27,11 @@ import 'rxjs/add/operator/map';
 
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
-    BigQueryService,
-    ColumnStat,
-    Project,
-    BigQueryDryRunResponse,
-    BigQueryResponse
+  BigQueryService,
+  ColumnStat,
+  Project,
+  BigQueryDryRunResponse,
+  BigQueryResponse
 } from '../services/bigquery.service';
 import {
   Step,
@@ -161,16 +161,16 @@ export class MainComponent implements OnInit, OnDestroy {
     const stylesGroupMap = {};
     StyleProps.forEach((prop) => stylesGroupMap[prop.name] = this.createStyleFormGroup());
     this.stylesFormGroup = this._formBuilder.group(stylesGroupMap);
-    
+
     // Initialize default styles.
     this.updateStyles();
   }
 
-  saveDataToLocalStorage(projectID : string, sql : string, location : string) {
-    this._storage.set(this.localStorageKey, {projectID: projectID, sql: sql, location: location});
+  saveDataToLocalStorage(projectID: string, sql: string, location: string) {
+    this._storage.set(this.localStorageKey, { projectID: projectID, sql: sql, location: location });
   }
 
-  loadDataFromLocalStorage() : {projectID : string, sql : string, location : string} {
+  loadDataFromLocalStorage(): { projectID: string, sql: string, location: string } {
     return this._storage.get(this.localStorageKey);
   }
 
@@ -247,17 +247,17 @@ export class MainComponent implements OnInit, OnDestroy {
     this.cmDebouncer.next();
   }
 
-  _hasJobParams() : boolean {
+  _hasJobParams(): boolean {
     return !!(this.jobID && this.project);
   }
 
-  _hasTableParams() : boolean {
+  _hasTableParams(): boolean {
     return !!(this.project && this.dataset && this.table);
   }
 
   _jobParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
-           this.jobIDRegExp.test(this.jobID);
+      this.jobIDRegExp.test(this.jobID);
   }
   _tableParamsValid(): boolean {
     return this.projectIDRegExp.test(this.project) &&
@@ -289,7 +289,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   // 'count' is used to track the number of request. Each request is 10MB.
-  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string)  : Promise<BigQueryResponse> {
+  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string): Promise<BigQueryResponse> {
     if (!inputPageToken || count >= MAX_PAGES) {
       // Force an update feature here since everything is done.
       this.rows = this.rows.slice(0);
@@ -297,7 +297,7 @@ export class MainComponent implements OnInit, OnDestroy {
     }
     count = count + 1;
     return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
-      this.rows.push(...rows);                                                                                      
+      this.rows.push(...rows);
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
       return this.getResults(count, projectId, pageToken, location, jobID);
@@ -321,26 +321,26 @@ export class MainComponent implements OnInit, OnDestroy {
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
         const hasNonGeoColumns = geoColumns.length < dryRunResponse.schema.fields.length;
         const nonGeoClause = hasNonGeoColumns
-          ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ') }),`
+          ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ')}),`
           : '';
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
         const wrappedSQL = `SELECT
             ${nonGeoClause}
-            ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
+            ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ')}
           FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
         return this.dataService.query(projectID, wrappedSQL, location);
       })
       .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID }) => {
         this.columns = columns;
         this.columnNames = columnNames;
-        this.geoColumnNames = geoColumns.map((f) => f.name)
-	this.rows = rows;                                                                                      
+        this.geoColumnNames = geoColumns.map((f) => f.name);
+        this.rows = rows;
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
-        this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
+        this.schemaFormGroup.patchValue({ geoColumn: geoColumns[0].name });
         this.totalRows = totalRows;
         return this.getResults(0, projectID, pageToken, location, jobID);
-      })                                                                 
+      })
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
         if (error.status === 'INVALID_ARGUMENT' && error.message.match(/^Unrecognized name: f\d+_/)) {
@@ -442,7 +442,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 }
 
-function parseErrorMessage (e, defaultMessage = 'Something went wrong') {
+function parseErrorMessage(e, defaultMessage = 'Something went wrong') {
   if (e.message) { return e.message; }
   if (e.result && e.result.error && e.result.error.message) {
     return e.result.error.message;
