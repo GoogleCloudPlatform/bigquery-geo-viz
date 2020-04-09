@@ -275,7 +275,7 @@ export class MainComponent implements OnInit, OnDestroy {
         });
       } else if (this.sharingId) {
         this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
-	  this.applyRetrievedSharingValues(shareableValues);
+          this.applyRetrievedSharingValues(shareableValues);
         }).catch((e) => this.showMessage(parseErrorMessage(e)));
       } else {
         const localStorageValues = this.loadDataFromLocalStorage();
@@ -290,29 +290,29 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
-  applyRetrievedSharingValues(shareableValues : ShareableData) {
+  applyRetrievedSharingValues(shareableValues: ShareableData) {
     if (shareableValues) {
       if (shareableValues.sharingVersion != SHARING_VERSION) {
-	throw new Error('Sharing link is invalid.');
+        throw new Error('Sharing link is invalid.');
       }
       this.dataFormGroup.patchValue({
-	sql: '/* Loading sql query from job... */',
-	projectID: shareableValues.projectID,
-	location: shareableValues.location
+        sql: '/* Loading sql query from job... */',
+        projectID: shareableValues.projectID,
+        location: shareableValues.location
       });
       this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectID).then((queryText) => {
-	this.dataFormGroup.patchValue({
-	  sql: this.convertToUserQuery(queryText.sql),
-	});
-	const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
-	this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
-	this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
-	this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
-	this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, unencryptedStyles['strokeOpacity'].domain.length);
-	this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, unencryptedStyles['strokeWeight'].domain.length);
-	this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
-	this.stylesFormGroup.patchValue(unencryptedStyles);
-	this.updateStyles();
+        this.dataFormGroup.patchValue({
+          sql: this.convertToUserQuery(queryText.sql),
+        });
+        const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, unencryptedStyles['strokeOpacity'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, unencryptedStyles['strokeWeight'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
+        this.stylesFormGroup.patchValue(unencryptedStyles);
+        this.updateStyles();
       }).catch((e) => this.showMessage("Cannot retrieve styling options."));
     }
   }
