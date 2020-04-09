@@ -195,7 +195,7 @@ export class MainComponent implements OnInit, OnDestroy {
     const dataValues = this.dataFormGroup.getRawValue();
     // Encrypt the style values using the sql string.
     const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql + this.bytesProcessed);
-    var shareableData = {
+    const shareableData = {
       sharingVersion: SHARING_VERSION,
       projectID: dataValues.projectID,
       jobID: this.jobID,
