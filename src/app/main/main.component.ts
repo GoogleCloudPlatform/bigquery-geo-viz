@@ -103,10 +103,12 @@ export class MainComponent implements OnInit, OnDestroy {
   stats: Map<String, ColumnStat> = new Map();
   sideNavOpened: boolean = true;
   // If a new query is run or the styling has changed, we need to generate a new sharing id.
-  newSharingIdRequired = false;
+  sharingDataChanged = false;
   // Track if the stepper has actually changed.
   stepperChanged = false;
-  sharingId = '';
+  sharingId = '';  // This is the input sharing Id from the url
+  generatedSharingId = ''; // This is the sharing id generated for the current settings.
+  sharingIdGenerationPending = false;
 
   // UI state
   stepIndex: Number = 0;
@@ -202,7 +204,7 @@ export class MainComponent implements OnInit, OnDestroy {
       creation_timestamp_ms: Date.now()
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
-      this.sharingId = written_doc_id;
+      this.generatedSharingId = written_doc_id;
     })
   }
 
@@ -312,21 +314,26 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   clearGeneratedSharingUrl() {
+    this.generatedSharingId = '';
+    this.sharingDataChanged = true;
     this.sharingFormGroup.patchValue({
       sharingUrl: ''
     });
   }
 
   generateSharingUrl() {
-    if (this.stepIndex == Step.SHARE && this.stepperChanged && this.newSharingIdRequired) {
-      this.sharingFormGroup.patchValue({
-	sharingUrl: 'Generating URL...'
-      });
+    if (!this._hasJobParams()) {
+      this.showMessage("Please first run a valid query before generating a sharing URL.");
+      return;
+    }
+    if (this.stepIndex == Step.SHARE && this.stepperChanged && this.sharingDataChanged) {
+      this.sharingDataChanged = false;
+      this.sharingIdGenerationPending = true;
       this.saveDataToSharedStorage().then(() => {
 	this.sharingFormGroup.patchValue({
-	  sharingUrl: window.location.origin + '?shareid='+ this.sharingId
+	  sharingUrl: window.location.origin + '?shareid='+ this.generatedSharingId
 	});
-	this.newSharingIdRequired = false;
+	this.sharingIdGenerationPending = false;
       }).catch((e) => this.showMessage(parseErrorMessage(e)));
     }
   }
@@ -452,7 +459,6 @@ ${USER_QUERY_END_MARKER}\n
     
     // Clear the existing sharing URL.
     this.clearGeneratedSharingUrl();
-    this.newSharingIdRequired = true;
 
     let geoColumns;
 
@@ -473,7 +479,7 @@ ${USER_QUERY_END_MARKER}\n
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({ geoColumn: geoColumns[0].name });
         this.totalRows = totalRows;
-	      this.jobID = jobID;
+	this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
         return this.getResults(0, this.projectID, pageToken, this.location, jobID);
       })                                                                 
@@ -496,14 +502,13 @@ ${USER_QUERY_END_MARKER}\n
   }
 
   onApplyStylesClicked() {
-    this.newSharingIdRequired = true;
+    this.clearGeneratedSharingUrl();
     this.updateStyles();
   }
 
   updateStyles() {
     if (this.stylesFormGroup.invalid) { return; }
     this.styles = this.stylesFormGroup.getRawValue();
-    this.clearGeneratedSharingUrl();
   }
 
   getRowWidth() {
