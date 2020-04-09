@@ -18,9 +18,11 @@
 // must be listed before other Firebase SDKs
 import * as firebase from "firebase/app";
 
-// Add the Firebase services that you want to use
+// Add the Firebase services that you want to use. This pattern is based on the firebase documentation.
 import "firebase/auth";
 import "firebase/firestore";
+
+import { firebaseConfig } from '../../environments/environment';
 import { StyleRule } from '../services/styles.service';
 
 const SHARING_COLLECTION = 'GeoVizSharing';
@@ -41,17 +43,6 @@ export class FirestoreService {
   private db: firebase.firestore.Firestore = null;
 
   constructor() {
-    // Your web app's Firebase configuration
-    var firebaseConfig = {
-      apiKey: "AIzaSyDS8k-x7L9vZ_mvvdyTzwQ1LNXsYLNnhOM",
-      authDomain: "bigquerygeoviz.firebaseapp.com",
-      databaseURL: "https://bigquerygeoviz.firebaseio.com",
-      projectId: "bigquerygeoviz",
-      storageBucket: "bigquerygeoviz.appspot.com",
-      messagingSenderId: "419125973937",
-      appId: "1:419125973937:web:eba1c63d64b58be3ec2390",
-      measurementId: "G-FNH2K1BP5G"
-    };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     this.db = firebase.firestore();

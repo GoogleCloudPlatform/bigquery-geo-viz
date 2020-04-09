@@ -412,7 +412,7 @@ export class MainComponent implements OnInit, OnDestroy {
   convertToUserQuery(geovizQuery : string) : string {
     if (!geovizQuery) return '';
 
-    var lines = geovizQuery.split('\n');
+    const lines = geovizQuery.split('\n');
     var userQueryStarted = false;
     var userQuery = '';
     lines.forEach((line) => {

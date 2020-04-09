@@ -124,18 +124,9 @@
             </form>
           </mat-step>
           <mat-step [stepControl]="sharingFormGroup" label="Share">
-	    <p class="sql-caption"> <b>Please read before creating a link:</b> </p>
-	    <ul class="sql-caption">
-	      <li> Creating a sharing link will save the project ID, BigQuery Job ID, and your styling rules (GeoViz does not store the SQL text or the underlying data from BigQuery). </li>
-	      <br>
-	      <li> Treat the link like a password:
-		<ul>
-		<br>
-		  <li> Anyone with the link can restore the styling rules. </li>
-		  <br>
-		  <li> The SQL for the BigQuery job is only available to those with sufficient access level to the GCP project that was used to run the job. </li>
-		</ul>
-	    </ul>
+	    <p class="sql-caption"> <b>IMPORTANT:</b>
+	    Creating a sharing link will save information about the query and style settings. Any user with the link can restore these settings. However, results returned by the query will not be stored, and the the ability to execute the query and view the results is restricted to users with the necessary permissions on the selected Google Cloud Platform project.
+	    </p>
             <button mat-raised-button color="primary" class="create-share-link-button" [disabled]="!sharingDataChanged" (click)="generateSharingUrl()">Create Share Link</button>
             <mat-progress-spinner *ngIf="sharingIdGenerationPending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
 	    <form *ngIf="generatedSharingId !== ''" [formGroup]="sharingFormGroup">
