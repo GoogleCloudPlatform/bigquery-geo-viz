@@ -181,10 +181,10 @@ export class MainComponent implements OnInit, OnDestroy {
     const stylesGroupMap = {};
     StyleProps.forEach((prop) => stylesGroupMap[prop.name] = this.createStyleFormGroup());
     this.stylesFormGroup = this._formBuilder.group(stylesGroupMap);
-    
+
     // Sharing form group
     this.sharingFormGroup = this._formBuilder.group({
-      sharingUrl : '',
+      sharingUrl: '',
     });
 
     // Initialize default styles.
@@ -192,13 +192,13 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   saveDataToSharedStorage() {
-    const dataValues = this.dataFormGroup.getRawValue(); 
+    const dataValues = this.dataFormGroup.getRawValue();
     // Encrypt the style values using the sql string.
     const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql + this.bytesProcessed);
     var shareableData = {
       sharingVersion: SHARING_VERSION,
-      projectID : dataValues.projectID,
-      jobID : this.jobID,
+      projectID: dataValues.projectID,
+      jobID: this.jobID,
       location: dataValues.location,
       styles: hashedStyleValues.toString(),
       creation_timestamp_ms: Date.now()
@@ -208,15 +208,15 @@ export class MainComponent implements OnInit, OnDestroy {
     })
   }
 
-  restoreDataFromSharedStorage(docId : string) : Promise<ShareableData>{
+  restoreDataFromSharedStorage(docId: string): Promise<ShareableData> {
     return this.storageService.getSharedData(this.sharingId);
   }
 
-  saveDataToLocalStorage(projectID : string, sql : string, location : string) {
-    this._storage.set(this.localStorageKey, {projectID: projectID, sql: sql, location: location});
+  saveDataToLocalStorage(projectID: string, sql: string, location: string) {
+    this._storage.set(this.localStorageKey, { projectID: projectID, sql: sql, location: location });
   }
 
-  loadDataFromLocalStorage() : {projectID : string, sql : string, location : string} {
+  loadDataFromLocalStorage(): { projectID: string, sql: string, location: string } {
     return this._storage.get(this.localStorageKey);
   }
 
@@ -274,34 +274,34 @@ export class MainComponent implements OnInit, OnDestroy {
           projectID: this.projectID,
         });
       } else if (this.sharingId) {
-	this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
-	  if (shareableValues) {
-	    if (shareableValues.sharingVersion != SHARING_VERSION) {
-	      throw new Error('Sharing link is invalid.');
-	    }
-	    this.dataFormGroup.patchValue({
-	      sql: '/* Loading sql query from job... */',
-	      projectID: shareableValues.projectID,
-	      location: shareableValues.location
-	    });
-	    this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectID).then((queryText) => {
-	      this.dataFormGroup.patchValue({
-		sql: this.convertToUserQuery(queryText.sql),
-	      });
-	      const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
-	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
-	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
-	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
-	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, unencryptedStyles['strokeOpacity'].domain.length);
-	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, unencryptedStyles['strokeWeight'].domain.length);
-	      this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
-	      this.stylesFormGroup.patchValue(unencryptedStyles);
-	      this.updateStyles();
-	    }).catch((e) => this.showMessage("Cannot retrieve styling options."));
-	  }
-	}).catch((e) => this.showMessage(parseErrorMessage(e)));
+        this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
+          if (shareableValues) {
+            if (shareableValues.sharingVersion != SHARING_VERSION) {
+              throw new Error('Sharing link is invalid.');
+            }
+            this.dataFormGroup.patchValue({
+              sql: '/* Loading sql query from job... */',
+              projectID: shareableValues.projectID,
+              location: shareableValues.location
+            });
+            this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectID).then((queryText) => {
+              this.dataFormGroup.patchValue({
+                sql: this.convertToUserQuery(queryText.sql),
+              });
+              const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
+              this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
+              this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
+              this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
+              this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, unencryptedStyles['strokeOpacity'].domain.length);
+              this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, unencryptedStyles['strokeWeight'].domain.length);
+              this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
+              this.stylesFormGroup.patchValue(unencryptedStyles);
+              this.updateStyles();
+            }).catch((e) => this.showMessage("Cannot retrieve styling options."));
+          }
+        }).catch((e) => this.showMessage(parseErrorMessage(e)));
       } else {
-	const localStorageValues = this.loadDataFromLocalStorage();
+        const localStorageValues = this.loadDataFromLocalStorage();
         if (localStorageValues) {
           this.dataFormGroup.patchValue({
             sql: localStorageValues.sql,
@@ -330,17 +330,17 @@ export class MainComponent implements OnInit, OnDestroy {
       this.sharingDataChanged = false;
       this.sharingIdGenerationPending = true;
       this.saveDataToSharedStorage().then(() => {
-	this.sharingFormGroup.patchValue({
-	  sharingUrl: window.location.origin + '?shareid='+ this.generatedSharingId
-	});
-	this.sharingIdGenerationPending = false;
+        this.sharingFormGroup.patchValue({
+          sharingUrl: window.location.origin + '?shareid=' + this.generatedSharingId
+        });
+        this.sharingIdGenerationPending = false;
       }).catch((e) => this.showMessage(parseErrorMessage(e)));
     }
   }
 
   onStepperChange(e: StepperSelectionEvent) {
     this.stepIndex = e.selectedIndex;
-    if (e.selectedIndex != e.previouslySelectedIndex) { 
+    if (e.selectedIndex != e.previouslySelectedIndex) {
       this.stepperChanged = true;
     } else {
       this.stepperChanged = false;
@@ -409,7 +409,7 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
-  convertToUserQuery(geovizQuery : string) : string {
+  convertToUserQuery(geovizQuery: string): string {
     if (!geovizQuery) return '';
 
     const lines = geovizQuery.split('\n');
@@ -417,32 +417,32 @@ export class MainComponent implements OnInit, OnDestroy {
     var userQuery = '';
     lines.forEach((line) => {
       if (line.includes(USER_QUERY_START_MARKER)) {
-	userQueryStarted = true;
+        userQueryStarted = true;
       } else if (line.includes(USER_QUERY_END_MARKER)) {
-	userQueryStarted = false;
+        userQueryStarted = false;
       } else {
-	if (userQueryStarted) {
-	  userQuery += line + '\n';
-	}
+        if (userQueryStarted) {
+          userQuery += line + '\n';
+        }
       }
     });
 
     return userQuery.trim();
   }
 
-  convertToGeovizQuery(userQuery : string, geoColumns: BigQueryColumn[], numCols : number) :  string {
+  convertToGeovizQuery(userQuery: string, geoColumns: BigQueryColumn[], numCols: number): string {
     const hasNonGeoColumns = geoColumns.length < numCols;
     const nonGeoClause = hasNonGeoColumns
-      ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ') }),`
+      ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ')}),`
       : '';
     return `SELECT
   ${nonGeoClause}
-  ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ') }
+  ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ')}
 FROM (
 ${USER_QUERY_START_MARKER}\n
 ${userQuery.replace(/;\s*$/, '')}\n
 ${USER_QUERY_END_MARKER}\n
-);`;              
+);`;
   }
 
   query() {
@@ -456,7 +456,7 @@ ${USER_QUERY_END_MARKER}\n
     const sql = dataFormValues.sql;
     this.location = dataFormValues.location;
     this.saveDataToLocalStorage(this.projectID, sql, this.location);
-    
+
     // Clear the existing sharing URL.
     this.clearGeneratedSharingUrl();
 
@@ -467,7 +467,7 @@ ${USER_QUERY_END_MARKER}\n
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
 
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
-        this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length); 
+        this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length);
         return this.dataService.query(this.projectID, this.jobWrappedSql, this.location);
       })
       .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed }) => {
@@ -479,10 +479,10 @@ ${USER_QUERY_END_MARKER}\n
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({ geoColumn: geoColumns[0].name });
         this.totalRows = totalRows;
-	this.jobID = jobID;
+        this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
         return this.getResults(0, this.projectID, pageToken, this.location, jobID);
-      })                                                                 
+      })
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
         if (error.status === 'INVALID_ARGUMENT' && error.message.match(/^Unrecognized name: f\d+_/)) {
