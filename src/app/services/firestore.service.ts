@@ -18,7 +18,7 @@
 // must be listed before other Firebase SDKs
 import * as firebase from "firebase/app";
 
-// Add the Firebase services that you want to use. This pattern is based on the firebase documentation.
+// Load required services into the firebase namespace.
 import "firebase/auth";
 import "firebase/firestore";
 
