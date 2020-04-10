@@ -120,9 +120,21 @@
                   <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
                 </mat-expansion-panel>
               </mat-accordion>
-              <button mat-raised-button color="primary" (click)="updateStyles()">Apply Style</button>
+              <button mat-raised-button color="primary" (click)="onApplyStylesClicked()" class="apply-style-button" >Apply Style</button>
             </form>
           </mat-step>
+          <mat-step [stepControl]="sharingFormGroup" label="Share">
+	    <p class="sql-caption"> <b>IMPORTANT:</b>
+	    Creating a sharing link will save information about the query and style settings. Any user with the link can restore these settings. However, results returned by the query will not be stored, and the the ability to execute the query and view the results is restricted to users with the necessary permissions on the selected Google Cloud Platform project. Sharing links remain active for 30 days.
+	    </p>
+            <button mat-raised-button color="primary" class="create-share-link-button" [disabled]="!sharingDataChanged" (click)="generateSharingUrl()">Create Share Link</button>
+            <mat-progress-spinner *ngIf="sharingIdGenerationPending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
+	    <form *ngIf="generatedSharingId !== ''" [formGroup]="sharingFormGroup">
+	      <mat-form-field class="sql-form-field">
+		<input type="text" matInput formControlName="sharingUrl" ([ngModel])="model" readonly>
+	      </mat-form-field>
+	    </form>
+	  </mat-step>
         </mat-vertical-stepper>
         <button mat-icon-button (click)="onFillPreset()" class="preset-button" color="primary">
           <mat-icon aria-label="Fill magic presets">
