@@ -33,7 +33,7 @@ export interface ShareableData {
   jobID : string;
   location : string | undefined;
   styles: string;
-  creation_timestamp_ms: number;
+  creationTimestampMs: number;
 }
 
 /**

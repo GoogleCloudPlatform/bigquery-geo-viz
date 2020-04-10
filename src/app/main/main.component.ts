@@ -201,7 +201,7 @@ export class MainComponent implements OnInit, OnDestroy {
       jobID: this.jobID,
       location: dataValues.location,
       styles: hashedStyleValues.toString(),
-      creation_timestamp_ms: Date.now()
+      creationTimestampMs: Date.now()
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.generatedSharingId = written_doc_id;
@@ -337,9 +337,9 @@ export class MainComponent implements OnInit, OnDestroy {
         this.sharingFormGroup.patchValue({
           sharingUrl: window.location.origin + '?shareid=' + this.generatedSharingId
         });
-        this.sharingIdGenerationPending = false;
       }).catch((e) => this.showMessage(parseErrorMessage(e)));
     }
+    this.sharingIdGenerationPending = false;
   }
 
   onStepperChange(e: StepperSelectionEvent) {
@@ -417,8 +417,8 @@ export class MainComponent implements OnInit, OnDestroy {
     if (!geovizQuery) return '';
 
     const lines = geovizQuery.split('\n');
-    var userQueryStarted = false;
-    var userQuery = '';
+    let userQueryStarted = false;
+    let userQuery = '';
     lines.forEach((line) => {
       if (line.includes(USER_QUERY_START_MARKER)) {
         userQueryStarted = true;
