@@ -18,13 +18,12 @@ import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy } from 
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { LOCAL_STORAGE, WebStorageService } from 'angular-webstorage-service';
-import { MatTableDataSource, MatSnackBar } from '@angular/material';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
-import { Subject } from 'rxjs/Subject';
-import { Subscription } from 'rxjs/Subscription';
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/map';
-import * as CryptoJS from "crypto-js";
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
+import * as CryptoJS from 'crypto-js';
 
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
@@ -136,7 +135,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Debounce CodeMirror change events to avoid running extra dry runs.
     this.cmDebouncerSub = this.cmDebouncer
-      .debounceTime(DEBOUNCE_MS)
+      .pipe(debounceTime(DEBOUNCE_MS))
       .subscribe((value: string) => { this._dryRun(); });
 
     // Set up BigQuery service.
@@ -152,12 +151,12 @@ export class MainComponent implements OnInit, OnDestroy {
     this.rows = [];
 
     // Read parameters from URL
-    this.projectID = this._route.snapshot.paramMap.get("project");
-    this.dataset = this._route.snapshot.paramMap.get("dataset");
-    this.table = this._route.snapshot.paramMap.get("table");
-    this.jobID = this._route.snapshot.paramMap.get("job");
-    this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
-    this.sharingId = this._route.snapshot.queryParams["shareid"];
+    this.projectID = this._route.snapshot.paramMap.get('project');
+    this.dataset = this._route.snapshot.paramMap.get('dataset');
+    this.table = this._route.snapshot.paramMap.get('table');
+    this.jobID = this._route.snapshot.paramMap.get('job');
+    this.location = this._route.snapshot.paramMap.get('location') || ''; // Empty string for 'Auto Select'
+    this.sharingId = this._route.snapshot.queryParams['shareid'];
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
@@ -165,14 +164,16 @@ export class MainComponent implements OnInit, OnDestroy {
       sql: ['', Validators.required],
       location: [''],
     });
-    this.dataFormGroup.controls.projectID.valueChanges.debounceTime(200).subscribe(() => {
-      this.dataService.getProjects()
-        .then((projects) => {
-          this.matchingProjects = projects.filter((project) => {
-            return project['id'].indexOf(this.dataFormGroup.controls.projectID.value) >= 0;
+    this.dataFormGroup.controls.projectID.valueChanges
+      .pipe(debounceTime(200))
+      .subscribe(() => {
+        this.dataService.getProjects()
+          .then((projects) => {
+            this.matchingProjects = projects.filter((project) => {
+              return project['id'].indexOf(this.dataFormGroup.controls.projectID.value) >= 0;
+            });
           });
-        });
-    });
+      });
 
     // Schema form group
     this.schemaFormGroup = this._formBuilder.group({ geoColumn: [''] });
@@ -205,7 +206,7 @@ export class MainComponent implements OnInit, OnDestroy {
     };
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.generatedSharingId = written_doc_id;
-    })
+    });
   }
 
   restoreDataFromSharedStorage(docId: string): Promise<ShareableData> {
@@ -304,7 +305,10 @@ export class MainComponent implements OnInit, OnDestroy {
         this.dataFormGroup.patchValue({
           sql: this.convertToUserQuery(queryText.sql),
         });
-        const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
+        const unencryptedJson = CryptoJS.enc.Utf8.stringify(
+          CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)
+        );
+        const unencryptedStyles = JSON.parse(unencryptedJson);
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
@@ -313,7 +317,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
         this.stylesFormGroup.patchValue(unencryptedStyles);
         this.updateStyles();
-      }).catch((e) => this.showMessage("Cannot retrieve styling options."));
+      }).catch(() => this.showMessage('Cannot retrieve styling options.'));
     }
   }
 
@@ -327,10 +331,10 @@ export class MainComponent implements OnInit, OnDestroy {
 
   generateSharingUrl() {
     if (!this._hasJobParams()) {
-      this.showMessage("Please first run a valid query before generating a sharing URL.");
+      this.showMessage('Please first run a valid query before generating a sharing URL.');
       return;
     }
-    if (this.stepIndex == Step.SHARE && this.stepperChanged && this.sharingDataChanged) {
+    if (this.stepIndex === Step.SHARE && this.stepperChanged && this.sharingDataChanged) {
       this.sharingDataChanged = false;
       this.sharingIdGenerationPending = true;
       this.saveDataToSharedStorage().then(() => {
@@ -344,7 +348,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   onStepperChange(e: StepperSelectionEvent) {
     this.stepIndex = e.selectedIndex;
-    if (e.selectedIndex != e.previouslySelectedIndex) {
+    if (e.selectedIndex !== e.previouslySelectedIndex) {
       this.stepperChanged = true;
     } else {
       this.stepperChanged = false;
@@ -376,10 +380,10 @@ export class MainComponent implements OnInit, OnDestroy {
 
   _dryRun(): Promise<BigQueryDryRunResponse> {
     const { projectID, sql, location } = this.dataFormGroup.getRawValue();
-    if (!projectID) return;
+    if (!projectID) { return; }
     const dryRun = this.dataService.prequery(projectID, sql, location)
       .then((response: BigQueryDryRunResponse) => {
-        if (!response.ok) throw new Error('Query analysis failed.');
+        if (!response.ok) { throw new Error('Query analysis failed.'); }
         const geoColumn = response.schema.fields.find((f) => f.type === 'GEOGRAPHY');
         if (response.statementType !== 'SELECT') {
           throw new Error('Expected a SELECT statement.');
@@ -405,16 +409,17 @@ export class MainComponent implements OnInit, OnDestroy {
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
-      this.rows.push(...rows);
-      this.stats = stats;
-      this._changeDetectorRef.detectChanges();
-      return this.getResults(count, projectID, pageToken, location, jobID);
-    });
+    return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats)
+      .then(({ rows, stats, pageToken }) => {
+        this.rows.push(...rows);
+        this.stats = stats;
+        this._changeDetectorRef.detectChanges();
+        return this.getResults(count, projectID, pageToken, location, jobID);
+      });
   }
 
   convertToUserQuery(geovizQuery: string): string {
-    if (!geovizQuery) return '';
+    if (!geovizQuery) { return ''; }
 
     const lines = geovizQuery.split('\n');
     let userQueryStarted = false;
