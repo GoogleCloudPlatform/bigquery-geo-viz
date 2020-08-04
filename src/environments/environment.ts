@@ -20,15 +20,14 @@ export const environment = {
   authScope: 'https://www.googleapis.com/auth/bigquery'
 };
 
-// Your web app's Firebase configuration
 // TODO(hormati): Create a different config for testing.
 export const firebaseConfig = {
-  apiKey: "AIzaSyDS8k-x7L9vZ_mvvdyTzwQ1LNXsYLNnhOM",
-  authDomain: "bigquerygeoviz.firebaseapp.com",
-  databaseURL: "https://bigquerygeoviz.firebaseio.com",
-  projectId: "bigquerygeoviz",
-  storageBucket: "bigquerygeoviz.appspot.com",
-  messagingSenderId: "419125973937",
-  appId: "1:419125973937:web:eba1c63d64b58be3ec2390",
-  measurementId: "G-FNH2K1BP5G"
+  apiKey: 'AIzaSyDS8k-x7L9vZ_mvvdyTzwQ1LNXsYLNnhOM',
+  authDomain: 'bigquerygeoviz.firebaseapp.com',
+  databaseURL: 'https://bigquerygeoviz.firebaseio.com',
+  projectId: 'bigquerygeoviz',
+  storageBucket: 'bigquerygeoviz.appspot.com',
+  messagingSenderId: '419125973937',
+  appId: '1:419125973937:web:eba1c63d64b58be3ec2390',
+  measurementId: 'G-FNH2K1BP5G'
 };

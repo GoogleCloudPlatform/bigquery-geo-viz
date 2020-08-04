@@ -10,12 +10,12 @@ export class GeoJSONService {
    * @param geoColumn
    */
   static rowsToGeoJSON(rows: object[], geoColumn: string): GeoJSONFeature[] {
-    if (!rows || !geoColumn) return [];
+    if (!rows || !geoColumn) { return []; }
 
     // Convert rows to GeoJSON features.
     const features = [];
     rows.forEach((row) => {
-      if (!row[geoColumn]) return;
+      if (!row[geoColumn]) { return; }
       try {
         const geometry = JSON.parse(row[geoColumn]);
         const feature = { type: 'Feature', geometry, properties: row };

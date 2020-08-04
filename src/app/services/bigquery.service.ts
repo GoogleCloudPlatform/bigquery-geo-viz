@@ -114,7 +114,7 @@ export class BigQueryService {
    * Returns current user credentials.
    */
   getCredential(): Object {
-    let authResponse =  gapi['auth2'].getAuthInstance().currentUser.get().getAuthResponse(true);
+    const authResponse =  gapi['auth2'].getAuthInstance().currentUser.get().getAuthResponse(true);
     if (authResponse) {
       return { id_token: authResponse.id_token, access_token: authResponse.access_token };
     }
@@ -173,7 +173,10 @@ export class BigQueryService {
       if (response.result.statistics.query.statementType != 'SELECT') {
         throw new Error('Job id is not for a SELECT statement.');
       }
-      return { sql: response.result.configuration.query.query, bytesProcessed: Number(response.result.statistics.query.totalBytesProcessed) };
+      return {
+        sql: response.result.configuration.query.query,
+        bytesProcessed: Number(response.result.statistics.query.totalBytesProcessed)
+      };
     });
   }
 
@@ -298,8 +301,16 @@ export class BigQueryService {
 
       const totalRows = Number(response.result.totalRows);
 
-      return { columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobID: response.result.jobReference.jobId,
-               totalBytesProcessed: Number(response.result.totalBytesProcessed)} as BigQueryResponse;
+      return {
+        columns,
+        columnNames,
+        rows,
+        stats,
+        totalRows,
+        pageToken: response.result.pageToken,
+        jobID: response.result.jobReference.jobId,
+        totalBytesProcessed: Number(response.result.totalBytesProcessed)
+      } as BigQueryResponse;
     });
   }
 }
