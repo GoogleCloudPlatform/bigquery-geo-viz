@@ -33,9 +33,9 @@ export const MAX_RESULTS_PREVIEW = 10;
 export const TIMEOUT_MS = 120000;
 
 // Used to write the sharing data and maintain backward compatibility.
-export const SHARING_VERSION = "v1";
+export const SHARING_VERSION = 'v1';
 
-export const SAMPLE_PROJECT_ID = 'google.com:bqmapper';
+export const SAMPLE_PROJECT_ID = '';
 export const SAMPLE_QUERY = `SELECT
   ST_GeogPoint(longitude, latitude)  AS WKT,
   status,

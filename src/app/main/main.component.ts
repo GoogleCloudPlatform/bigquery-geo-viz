@@ -18,12 +18,11 @@ import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy } from 
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { LOCAL_STORAGE, WebStorageService } from 'angular-webstorage-service';
-import { MatTableDataSource, MatSnackBar } from '@angular/material';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { StepperSelectionEvent } from '@angular/cdk/stepper';
-import { Subject } from 'rxjs/Subject';
-import { Subscription } from 'rxjs/Subscription';
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/map';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import * as CryptoJS from 'crypto-js';
 
 import { StyleProps, StyleRule } from '../services/styles.service';
@@ -136,7 +135,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Debounce CodeMirror change events to avoid running extra dry runs.
     this.cmDebouncerSub = this.cmDebouncer
-      .debounceTime(DEBOUNCE_MS)
+      .pipe(debounceTime(DEBOUNCE_MS))
       .subscribe((value: string) => { this._dryRun(); });
 
     // Set up BigQuery service.
@@ -165,14 +164,16 @@ export class MainComponent implements OnInit, OnDestroy {
       sql: ['', Validators.required],
       location: [''],
     });
-    this.dataFormGroup.controls.projectID.valueChanges.debounceTime(200).subscribe(() => {
-      this.dataService.getProjects()
-        .then((projects) => {
-          this.matchingProjects = projects.filter((project) => {
-            return project['id'].indexOf(this.dataFormGroup.controls.projectID.value) >= 0;
+    this.dataFormGroup.controls.projectID.valueChanges
+      .pipe(debounceTime(200))
+      .subscribe(() => {
+        this.dataService.getProjects()
+          .then((projects) => {
+            this.matchingProjects = projects.filter((project) => {
+              return project['id'].indexOf(this.dataFormGroup.controls.projectID.value) >= 0;
+            });
           });
-        });
-    });
+      });
 
     // Schema form group
     this.schemaFormGroup = this._formBuilder.group({ geoColumn: [''] });

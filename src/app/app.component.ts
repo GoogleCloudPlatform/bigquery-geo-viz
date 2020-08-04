@@ -15,8 +15,6 @@
  */
 
 import { Component, ViewContainerRef } from '@angular/core';
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/map';
 
 @Component({
   selector: 'app-root',
