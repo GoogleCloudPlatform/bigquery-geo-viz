@@ -37,7 +37,7 @@
 .stepper {
     max-width: 100%;
     overflow: auto;
-    flex-shrink: 0;  
+    flex-shrink: 0;
 }
 
 mat-progress-spinner {
@@ -53,28 +53,21 @@ mat-progress-spinner {
     margin-bottom: 0.5em;
 }
 
+.toggle-button,
 .preset-button {
-    position: fixed;
-    bottom: 2em;
-    left: 6em;
-    background: #00539b;
-    z-index: 10000;
-} 
-
-.share-button {
-    position: fixed;
-    bottom: 2em;
-    left: 10em;
-    background: #00539b;
-    z-index: 10000;
+  position: fixed;
+  bottom: 1em;
+  background: #00539b;
+  z-index: 10000;
 }
 
 .toggle-button {
-    position: fixed;
-    bottom: 2em;
-    left: 2em;
-    background: #00539b;
-    z-index: 10000;
+  left: 1em;
+}
+
+.preset-button {
+  /* spacing + buttonWidth + spacing */
+  left: calc(1em + 40px + 1em);
 }
 
 .sql-form-field {
