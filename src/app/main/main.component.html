@@ -1,15 +1,6 @@
 <mat-toolbar color="primary" class="header">
-  <button mat-icon-button (click)="sidenav.toggle()" class="toggle-button" color="primary">
-    <mat-icon aria-label="Toggle Sidenav">
-      <img src="https://www.gstatic.com/images/icons/material/system/1x/vertical_split_white_24dp.png" srcset="https://www.gstatic.com/images/icons/material/system/1x/vertical_split_white_24dp.png 1x,
-                     https://www.gstatic.com/images/icons/material/system/2x/vertical_split_white_24dp.png 2x" alt="toggle sidenav">
-    </mat-icon>
-  </button>
-  <img class="header-logo"
-       src="assets/ic_logo@2X.png"
-       srcset="assets/ic_logo.png 1x,
-               assets/ic_logo@2X.png 2x"
-       alt="BigQuery Geo Viz Logo">
+  <img class="header-logo" src="assets/ic_logo@2X.png" srcset="assets/ic_logo.png 1x,
+               assets/ic_logo@2X.png 2x" alt="BigQuery Geo Viz Logo">
   <span>BigQuery Geo Viz</span>
   <span class="flex-spacer"></span>
   <a mat-button href="https://github.com/GoogleCloudPlatform/bigquery-geo-viz/issues" target="_blank">Feedback</a>
@@ -34,7 +25,8 @@
 
             <form *ngIf="isSignedIn" [formGroup]="dataFormGroup">
               <mat-form-field class="sql-form-field">
-                <input type="text" placeholder="Project ID" matInput formControlName="projectID" ([ngModel])="model" [matAutocomplete]="auto">
+                <input type="text" placeholder="Project ID" matInput formControlName="projectID" ([ngModel])="model"
+                  [matAutocomplete]="auto">
                 <mat-autocomplete #auto="matAutocomplete">
                   <mat-option *ngFor="let project of matchingProjects" [value]="project.id">
                     {{ project.id }}
@@ -42,27 +34,27 @@
                 </mat-autocomplete>
               </mat-form-field>
 
-              <codemirror ref="codemirror" formControlName="sql" ([ngModel])="model" [config]="cmConfig" (change)="dryRun()" (query)="query()"></codemirror>
+              <codemirror ref="codemirror" formControlName="sql" ([ngModel])="model" [config]="cmConfig"
+                (change)="dryRun()" (query)="query()"></codemirror>
 
               <div>
-                <button mat-raised-button color="primary" (click)="query(stepper)" [disabled]="!dataFormGroup.valid || pending">Run</button>
-                <button mat-raised-button color="primary"
-                        matStepperNext
-                        [disabled]="!rows.length || pending"
-                        [matTooltip]="rows.length !== totalRows ? 'Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit.'
-                                                                : null"
-                        matTooltipPosition="after">
-                    Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of {{ totalRows | number }}</span>)
+                <button mat-raised-button color="primary" (click)="query(stepper)"
+                  [disabled]="!dataFormGroup.valid || pending">Run</button>
+                <button mat-raised-button color="primary" matStepperNext [disabled]="!rows.length || pending"
+                  [matTooltip]="rows.length !== totalRows ? 'Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit.'
+                                                                : null" matTooltipPosition="after">
+                  Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of
+                    {{ totalRows | number }}</span>)
                 </button>
-                <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4"></mat-progress-spinner>
+                <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4">
+                </mat-progress-spinner>
                 <p class="sql-caption" *ngIf="bytesProcessed >= 0">
                   Estimated query size: {{ bytesProcessed | fileSize:1 }}
                 </p>
                 <p *ngIf="lintMessage" class="sql-lint">{{ lintMessage }}</p>
                 <mat-form-field class="wide sql-location">
                   <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model"
-                              matTooltip="Select processing location."
-                              matTooltipPosition="after">
+                    matTooltip="Select processing location." matTooltipPosition="after">
                     <mat-option value="">Auto-select</mat-option>
                     <mat-option value="US">United States (US)</mat-option>
                     <mat-option value="EU">European Union (EU)</mat-option>
@@ -87,8 +79,8 @@
             </div>
             <form [formGroup]="schemaFormGroup">
               <mat-form-field class="wide">
-                <mat-select placeholder="Geometry column" formControlName="geoColumn" ([ngModel])="model" matTooltip="Select field containing WKT-formatted geometry"
-                  matTooltipPosition="after">
+                <mat-select placeholder="Geometry column" formControlName="geoColumn" ([ngModel])="model"
+                  matTooltip="Select field containing WKT-formatted geometry" matTooltipPosition="after">
                   <mat-option *ngFor="let column of geoColumnNames" [value]="column">{{ column }}</mat-option>
                 </mat-select>
               </mat-form-field>
@@ -97,9 +89,11 @@
                   <mat-header-cell *matHeaderCellDef>
                     <div class="header-cell-title">{{ column }}</div>
                   </mat-header-cell>
-                  <mat-cell *matCellDef="let row" class="result-table-cell" [title]="row[column]">{{ row[column] }}</mat-cell>
+                  <mat-cell *matCellDef="let row" class="result-table-cell" [title]="row[column]">{{ row[column] }}
+                  </mat-cell>
                 </ng-container>
-                <mat-header-row *matHeaderRowDef="columnNames" [ngStyle]="{'min-width': getRowWidth()}"></mat-header-row>
+                <mat-header-row *matHeaderRowDef="columnNames" [ngStyle]="{'min-width': getRowWidth()}">
+                </mat-header-row>
                 <mat-row *matRowDef="let row; columns: columnNames;" [ngStyle]="{'min-width': getRowWidth()}"></mat-row>
               </mat-table>
             </form>
@@ -112,25 +106,56 @@
                   <mat-expansion-panel-header>
                     <mat-panel-title>{{ prop.name }}</mat-panel-title>
                     <mat-panel-description>
-                      <span *ngIf="getPropStatus(prop.name) === 'computed'" class="rule-badge computed">data-driven</span>
+                      <span *ngIf="getPropStatus(prop.name) === 'computed'"
+                        class="rule-badge computed">data-driven</span>
                       <span *ngIf="getPropStatus(prop.name) === 'global'" class="rule-badge global">global</span>
                       <span *ngIf="getPropStatus(prop.name) === 'none'" class="rule-badge none">none</span>
                     </mat-panel-description>
                   </mat-expansion-panel-header>
-                  <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)" [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
+                  <app-rule-input [prop]="prop" [columns]="columnNames" [stats]="getPropStats(prop.name)"
+                    [formGroup]="getPropFormGroup(prop.name)"></app-rule-input>
                 </mat-expansion-panel>
               </mat-accordion>
-              <button mat-raised-button color="primary" (click)="updateStyles()">Apply Style</button>
+              <button mat-raised-button color="primary" (click)="onApplyStylesClicked()"
+                class="apply-style-button">Apply Style</button>
+            </form>
+          </mat-step>
+          <mat-step [stepControl]="sharingFormGroup" label="Share">
+            <p class="sql-caption"> <b>IMPORTANT:</b>
+              Creating a sharing link will save information about the query and style settings. Any user with the link
+              can restore these settings. However, results returned by the query will not be stored, and the the ability
+              to execute the query and view the results is restricted to users with the necessary permissions on the
+              selected Google Cloud Platform project. Sharing links remain active for 30 days.
+            </p>
+            <button mat-raised-button color="primary" class="create-share-link-button" [disabled]="!sharingDataChanged"
+              (click)="generateSharingUrl()">Create Share Link</button>
+            <mat-progress-spinner *ngIf="sharingIdGenerationPending" mode="indeterminate" [diameter]="24"
+              [strokeWidth]="4"></mat-progress-spinner>
+            <form *ngIf="generatedSharingId !== ''" [formGroup]="sharingFormGroup">
+              <mat-form-field class="sql-form-field">
+                <input type="text" matInput formControlName="sharingUrl" ([ngModel])="model" readonly>
+              </mat-form-field>
             </form>
           </mat-step>
         </mat-vertical-stepper>
-        <button mat-icon-button (click)="onFillPreset()" class="preset-button" color="primary">
-          <mat-icon aria-label="Fill magic presets">
-            <img src="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png" srcset="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png 1x,
-                          https://www.gstatic.com/images/icons/material/system/2x/auto_fix_white_24dp.png 2x" alt="magic wand">
-          </mat-icon>
-        </button>
       </section>
     </mat-sidenav>
   </mat-sidenav-container>
+
+  <!-- Lower-left corner buttons. -->
+  <button mat-icon-button (click)="sidenav.toggle()" class="toggle-button" color="primary">
+    <mat-icon aria-label="Toggle sidebar">
+      <img src="https://www.gstatic.com/images/icons/material/system/1x/vertical_split_white_24dp.png" srcset="https://www.gstatic.com/images/icons/material/system/1x/vertical_split_white_24dp.png 1x,
+              https://www.gstatic.com/images/icons/material/system/2x/vertical_split_white_24dp.png 2x"
+        alt="Toggle sidebar">
+    </mat-icon>
+  </button>
+  <button mat-icon-button (click)="onFillPreset()" class="preset-button" color="primary">
+    <mat-icon aria-label="Fill magic presets">
+      <img src="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png"
+           srcset="https://www.gstatic.com/images/icons/material/system/1x/auto_fix_white_24dp.png 1x,
+                   https://www.gstatic.com/images/icons/material/system/2x/auto_fix_white_24dp.png 2x"
+        alt="magic wand">
+    </mat-icon>
+  </button>
 </div>

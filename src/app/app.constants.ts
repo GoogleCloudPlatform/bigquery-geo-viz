@@ -19,7 +19,8 @@ import * as colorbrewer from 'colorbrewer';
 export const Step = {
     DATA: 0,
     SCHEMA: 1,
-    STYLE: 2
+    STYLE: 2,
+    SHARE: 3
 };
 
 // Maximum number of results to be returned by BigQuery API.
@@ -30,6 +31,9 @@ export const MAX_RESULTS_PREVIEW = 10;
 
 // How long to wait for the query to complete, in milliseconds, before the request times out and returns.
 export const TIMEOUT_MS = 120000;
+
+// Used to write the sharing data and maintain backward compatibility.
+export const SHARING_VERSION = "v1";
 
 export const SAMPLE_PROJECT_ID = 'google.com:bqmapper';
 export const SAMPLE_QUERY = `SELECT

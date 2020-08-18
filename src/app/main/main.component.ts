@@ -24,15 +24,19 @@ import { Subject } from 'rxjs/Subject';
 import { Subscription } from 'rxjs/Subscription';
 import 'rxjs/add/operator/debounceTime';
 import 'rxjs/add/operator/map';
+import * as CryptoJS from "crypto-js";
 
 import { StyleProps, StyleRule } from '../services/styles.service';
 import {
   BigQueryService,
+  BigQueryColumn,
   ColumnStat,
   Project,
   BigQueryDryRunResponse,
   BigQueryResponse
 } from '../services/bigquery.service';
+
+import { FirestoreService, ShareableData } from '../services/firestore.service'
 import {
   Step,
   SAMPLE_QUERY,
@@ -40,11 +44,15 @@ import {
   SAMPLE_FILL_OPACITY,
   MAX_RESULTS_PREVIEW,
   SAMPLE_CIRCLE_RADIUS,
+  SHARING_VERSION,
   MAX_RESULTS,
   MAX_PAGES
+
 } from '../app.constants';
 
 const DEBOUNCE_MS = 1000;
+const USER_QUERY_START_MARKER = '--__USER__QUERY__START__';
+const USER_QUERY_END_MARKER = '--__USER__QUERY__END__';
 
 @Component({
   selector: 'app-main',
@@ -63,6 +71,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   // GCP session data
   readonly dataService = new BigQueryService();
+  readonly storageService = new FirestoreService();
   isSignedIn: boolean;
   user: Object;
   matchingProjects: Array<Project> = [];
@@ -71,16 +80,19 @@ export class MainComponent implements OnInit, OnDestroy {
   dataFormGroup: FormGroup;
   schemaFormGroup: FormGroup;
   stylesFormGroup: FormGroup;
+  sharingFormGroup: FormGroup;
 
   // BigQuery response data
   columns: Array<Object>;
   columnNames: Array<string>;
   geoColumnNames: Array<string>;
-  project = '';
+  projectID = '';
   dataset = '';
   table = '';
   jobID = '';
   location = '';
+  // This contains the query that ran in the job.
+  jobWrappedSql = '';
   bytesProcessed: number = 0;
   lintMessage = '';
   pending = false;
@@ -90,6 +102,13 @@ export class MainComponent implements OnInit, OnDestroy {
   data: MatTableDataSource<Object>;
   stats: Map<String, ColumnStat> = new Map();
   sideNavOpened: boolean = true;
+  // If a new query is run or the styling has changed, we need to generate a new sharing id.
+  sharingDataChanged = false;
+  // Track if the stepper has actually changed.
+  stepperChanged = false;
+  sharingId = '';  // This is the input sharing Id from the url
+  generatedSharingId = ''; // This is the sharing id generated for the current settings.
+  sharingIdGenerationPending = false;
 
   // UI state
   stepIndex: Number = 0;
@@ -133,11 +152,12 @@ export class MainComponent implements OnInit, OnDestroy {
     this.rows = [];
 
     // Read parameters from URL
-    this.project = this._route.snapshot.paramMap.get("project");
+    this.projectID = this._route.snapshot.paramMap.get("project");
     this.dataset = this._route.snapshot.paramMap.get("dataset");
     this.table = this._route.snapshot.paramMap.get("table");
     this.jobID = this._route.snapshot.paramMap.get("job");
     this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
+    this.sharingId = this._route.snapshot.queryParams["shareid"];
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
@@ -162,8 +182,34 @@ export class MainComponent implements OnInit, OnDestroy {
     StyleProps.forEach((prop) => stylesGroupMap[prop.name] = this.createStyleFormGroup());
     this.stylesFormGroup = this._formBuilder.group(stylesGroupMap);
 
+    // Sharing form group
+    this.sharingFormGroup = this._formBuilder.group({
+      sharingUrl: '',
+    });
+
     // Initialize default styles.
     this.updateStyles();
+  }
+
+  saveDataToSharedStorage() {
+    const dataValues = this.dataFormGroup.getRawValue();
+    // Encrypt the style values using the sql string.
+    const hashedStyleValues = CryptoJS.AES.encrypt(JSON.stringify(this.styles), this.jobWrappedSql + this.bytesProcessed);
+    const shareableData = {
+      sharingVersion: SHARING_VERSION,
+      projectID: dataValues.projectID,
+      jobID: this.jobID,
+      location: dataValues.location,
+      styles: hashedStyleValues.toString(),
+      creationTimestampMs: Date.now()
+    };
+    return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
+      this.generatedSharingId = written_doc_id;
+    })
+  }
+
+  restoreDataFromSharedStorage(docId: string): Promise<ShareableData> {
+    return this.storageService.getSharedData(this.sharingId);
   }
 
   saveDataToLocalStorage(projectID: string, sql: string, location: string) {
@@ -203,6 +249,7 @@ export class MainComponent implements OnInit, OnDestroy {
       this.isSignedIn = this.dataService.isSignedIn;
       if (!this.dataService.isSignedIn) { return; }
       this.user = this.dataService.getUser();
+      this.storageService.authorize(this.dataService.getCredential());
       this.dataService.getProjects()
         .then((projects) => {
           this.matchingProjects = projects;
@@ -212,19 +259,24 @@ export class MainComponent implements OnInit, OnDestroy {
       if (this._hasJobParams() && this._jobParamsValid()) {
         this.dataFormGroup.patchValue({
           sql: '/* Loading sql query from job... */',
-          projectID: this.project,
+          projectID: this.projectID,
           location: this.location
         });
-        this.dataService.getQueryFromJob(this.jobID, this.location, this.project).then((queryText) => {
+
+        this.dataService.getQueryFromJob(this.jobID, this.location, this.projectID).then((queryText) => {
           this.dataFormGroup.patchValue({
             sql: queryText.sql,
           });
         });
       } else if (this._hasTableParams() && this._tableParamsValid()) {
         this.dataFormGroup.patchValue({
-          sql: `SELECT * FROM \`${this.project}.${this.dataset}.${this.table}\`;`,
-          projectID: this.project,
+          sql: `SELECT * FROM \`${this.projectID}.${this.dataset}.${this.table}\`;`,
+          projectID: this.projectID,
         });
+      } else if (this.sharingId) {
+        this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
+          this.applyRetrievedSharingValues(shareableValues);
+        }).catch((e) => this.showMessage(parseErrorMessage(e)));
       } else {
         const localStorageValues = this.loadDataFromLocalStorage();
         if (localStorageValues) {
@@ -238,8 +290,65 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
+  applyRetrievedSharingValues(shareableValues: ShareableData) {
+    if (shareableValues) {
+      if (shareableValues.sharingVersion != SHARING_VERSION) {
+        throw new Error('Sharing link is invalid.');
+      }
+      this.dataFormGroup.patchValue({
+        sql: '/* Loading sql query from job... */',
+        projectID: shareableValues.projectID,
+        location: shareableValues.location
+      });
+      this.dataService.getQueryFromJob(shareableValues.jobID, shareableValues.location, shareableValues.projectID).then((queryText) => {
+        this.dataFormGroup.patchValue({
+          sql: this.convertToUserQuery(queryText.sql),
+        });
+        const unencryptedStyles = JSON.parse(CryptoJS.enc.Utf8.stringify(CryptoJS.AES.decrypt(shareableValues.styles, queryText.sql + queryText.bytesProcessed)));
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, unencryptedStyles['fillColor'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillOpacity, unencryptedStyles['fillOpacity'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeColor, unencryptedStyles['strokeColor'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeOpacity, unencryptedStyles['strokeOpacity'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.strokeWeight, unencryptedStyles['strokeWeight'].domain.length);
+        this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
+        this.stylesFormGroup.patchValue(unencryptedStyles);
+        this.updateStyles();
+      }).catch((e) => this.showMessage("Cannot retrieve styling options."));
+    }
+  }
+
+  clearGeneratedSharingUrl() {
+    this.generatedSharingId = '';
+    this.sharingDataChanged = true;
+    this.sharingFormGroup.patchValue({
+      sharingUrl: ''
+    });
+  }
+
+  generateSharingUrl() {
+    if (!this._hasJobParams()) {
+      this.showMessage("Please first run a valid query before generating a sharing URL.");
+      return;
+    }
+    if (this.stepIndex == Step.SHARE && this.stepperChanged && this.sharingDataChanged) {
+      this.sharingDataChanged = false;
+      this.sharingIdGenerationPending = true;
+      this.saveDataToSharedStorage().then(() => {
+        this.sharingFormGroup.patchValue({
+          sharingUrl: window.location.origin + '?shareid=' + this.generatedSharingId
+        });
+      }).catch((e) => this.showMessage(parseErrorMessage(e)));
+    }
+    this.sharingIdGenerationPending = false;
+  }
+
   onStepperChange(e: StepperSelectionEvent) {
     this.stepIndex = e.selectedIndex;
+    if (e.selectedIndex != e.previouslySelectedIndex) {
+      this.stepperChanged = true;
+    } else {
+      this.stepperChanged = false;
+    }
     gtag('event', 'step', { event_label: `step ${this.stepIndex}` });
   }
 
@@ -248,19 +357,19 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _hasJobParams(): boolean {
-    return !!(this.jobID && this.project);
+    return !!(this.jobID && this.projectID);
   }
 
   _hasTableParams(): boolean {
-    return !!(this.project && this.dataset && this.table);
+    return !!(this.projectID && this.dataset && this.table);
   }
 
   _jobParamsValid(): boolean {
-    return this.projectIDRegExp.test(this.project) &&
+    return this.projectIDRegExp.test(this.projectID) &&
       this.jobIDRegExp.test(this.jobID);
   }
   _tableParamsValid(): boolean {
-    return this.projectIDRegExp.test(this.project) &&
+    return this.projectIDRegExp.test(this.projectID) &&
       this.datasetIDRegExp.test(this.dataset) &&
       this.tableIDRegExp.test(this.table);
   }
@@ -289,48 +398,83 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   // 'count' is used to track the number of request. Each request is 10MB.
-  getResults(count: number, projectId: string, inputPageToken: string, location: string, jobID: string): Promise<BigQueryResponse> {
+  getResults(count: number, projectID: string, inputPageToken: string, location: string, jobID: string): Promise<BigQueryResponse> {
     if (!inputPageToken || count >= MAX_PAGES) {
       // Force an update feature here since everything is done.
       this.rows = this.rows.slice(0);
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectId, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
+    return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
       this.rows.push(...rows);
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
-      return this.getResults(count, projectId, pageToken, location, jobID);
+      return this.getResults(count, projectID, pageToken, location, jobID);
     });
+  }
+
+  convertToUserQuery(geovizQuery: string): string {
+    if (!geovizQuery) return '';
+
+    const lines = geovizQuery.split('\n');
+    let userQueryStarted = false;
+    let userQuery = '';
+    lines.forEach((line) => {
+      if (line.includes(USER_QUERY_START_MARKER)) {
+        userQueryStarted = true;
+      } else if (line.includes(USER_QUERY_END_MARKER)) {
+        userQueryStarted = false;
+      } else {
+        if (userQueryStarted) {
+          userQuery += line + '\n';
+        }
+      }
+    });
+
+    return userQuery.trim();
+  }
+
+  convertToGeovizQuery(userQuery: string, geoColumns: BigQueryColumn[], numCols: number): string {
+    const hasNonGeoColumns = geoColumns.length < numCols;
+    const nonGeoClause = hasNonGeoColumns
+      ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ')}),`
+      : '';
+    return `SELECT
+  ${nonGeoClause}
+  ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ')}
+FROM (
+${USER_QUERY_START_MARKER}\n
+${userQuery.replace(/;\s*$/, '')}\n
+${USER_QUERY_END_MARKER}\n
+);`;
   }
 
   query() {
     if (this.pending) { return; }
     this.pending = true;
 
-    const { projectID, sql, location } = this.dataFormGroup.getRawValue();
-
     // We will save the query information to local store to be restored next
     // time that the app is launched.
-    this.saveDataToLocalStorage(projectID, sql, location);
+    const dataFormValues = this.dataFormGroup.getRawValue();
+    this.projectID = dataFormValues.projectID;
+    const sql = dataFormValues.sql;
+    this.location = dataFormValues.location;
+    this.saveDataToLocalStorage(this.projectID, sql, this.location);
+
+    // Clear the existing sharing URL.
+    this.clearGeneratedSharingUrl();
 
     let geoColumns;
 
     this._dryRun()
       .then((dryRunResponse) => {
         geoColumns = dryRunResponse.schema.fields.filter((f) => f.type === 'GEOGRAPHY');
-        const hasNonGeoColumns = geoColumns.length < dryRunResponse.schema.fields.length;
-        const nonGeoClause = hasNonGeoColumns
-          ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ')}),`
-          : '';
+
         // Wrap the user's SQL query, replacing geography columns with GeoJSON.
-        const wrappedSQL = `SELECT
-            ${nonGeoClause}
-            ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ')}
-          FROM (\n${sql.replace(/;\s*$/, '')}\n);`;
-        return this.dataService.query(projectID, wrappedSQL, location);
+        this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length);
+        return this.dataService.query(this.projectID, this.jobWrappedSql, this.location);
       })
-      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID }) => {
+      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed }) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name);
@@ -339,7 +483,9 @@ export class MainComponent implements OnInit, OnDestroy {
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
         this.schemaFormGroup.patchValue({ geoColumn: geoColumns[0].name });
         this.totalRows = totalRows;
-        return this.getResults(0, projectID, pageToken, location, jobID);
+        this.jobID = jobID;
+        this.bytesProcessed = totalBytesProcessed;
+        return this.getResults(0, this.projectID, pageToken, this.location, jobID);
       })
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
@@ -357,6 +503,11 @@ export class MainComponent implements OnInit, OnDestroy {
         this._changeDetectorRef.detectChanges();
       });
 
+  }
+
+  onApplyStylesClicked() {
+    this.clearGeneratedSharingUrl();
+    this.updateStyles();
   }
 
   updateStyles() {
