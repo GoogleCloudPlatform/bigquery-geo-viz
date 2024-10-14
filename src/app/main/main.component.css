@@ -132,3 +132,32 @@ mat-progress-spinner {
 .mat-raised-button[disabled] {
     background: #e5e3df;
 }
+
+.query-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-items: center;
+    gap: 8px;
+}
+.pagination-span {
+    width: 72px;
+    text-align: center;
+}
+.pagination-input::-webkit-outer-spin-button,
+.pagination-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+.pagination-input[type=number] {
+  -moz-appearance: textfield;
+  width: 72px;
+  box-sizing: border-box;
+  text-align: center;
+}

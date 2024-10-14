@@ -14,7 +14,7 @@
 <div class="view">
   <mat-sidenav-container class="sidenav-container">
     <mat-sidenav-content>
-      <app-map [rows]="rows" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>
+      <app-map [rows]="rows" [page]="page" [geoColumn]="schemaFormGroup.controls.geoColumn.value" [styles]="styles"></app-map>
     </mat-sidenav-content>
     <mat-sidenav #sidenav mode="side" position="start" [(opened)]="sideNavOpened">
       <section class="drawer">
@@ -37,39 +37,62 @@
               <codemirror ref="codemirror" formControlName="sql" ([ngModel])="model" [config]="cmConfig"
                 (change)="dryRun()" (query)="query()"></codemirror>
 
-              <div>
+              <div class="query-buttons">
                 <button mat-raised-button color="primary" (click)="query(stepper)"
                   [disabled]="!dataFormGroup.valid || pending">Run</button>
+                  <p>{{ displayIndex }}</p>
+                
                 <button mat-raised-button color="primary" matStepperNext [disabled]="!rows.length || pending"
                   [matTooltip]="rows.length !== totalRows ? 'Results may be truncated due to size and performance limitations. Selecting fewer columns or less data may increase this limit.'
                                                                 : null" matTooltipPosition="after">
                   Show results ({{ rows.length | number }}<span *ngIf="rows.length !== totalRows"> of
                     {{ totalRows | number }}</span>)
                 </button>
+                <div class="pagination-container">
+
+                  <button mat-icon-button color="primary" (click)="paginate(-1)" [disabled]="!rows.length || pending || rows.length <= 1 || page === 0">&lt;</button>
+                  <span class="pagination-span" *ngIf="!isEditingPagination" (click)="rows.length && rows.length > 0 && !pending && startPaginationEditing()">
+                    {{ page === 0 ? 'All results' : (page) }}
+                  </span>
+                  <input
+                    #pageInput
+                    class="pagination-input"
+                    [attr.autofocus]="true"
+                    *ngIf="isEditingPagination"
+                    [value]="page === 0 ? '' : page"
+                    min="0"
+                    max="rows.length"
+                    (blur)="finishPaginationEditing($event)"
+                    (keydown.enter)="finishPaginationEditing($event)"
+                    type="number"
+                  />
+                  <button mat-icon-button color="primary" (click)="paginate(1)" [disabled]="!rows.length || pending || rows.length <= 1 || page === rows.length">&gt;</button>
+                </div>
                 <mat-progress-spinner *ngIf="pending" mode="indeterminate" [diameter]="24" [strokeWidth]="4">
                 </mat-progress-spinner>
-                <p class="sql-caption" *ngIf="bytesProcessed >= 0">
-                  Estimated query size: {{ bytesProcessed | fileSize:1 }}
-                </p>
-                <p *ngIf="lintMessage" class="sql-lint">{{ lintMessage }}</p>
-                <mat-form-field class="wide sql-location">
-                  <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model"
-                    matTooltip="Select processing location." matTooltipPosition="after">
-                    <mat-option value="">Auto-select</mat-option>
-                    <mat-option value="US">United States (US)</mat-option>
-                    <mat-option value="EU">European Union (EU)</mat-option>
-                    <mat-option value="us-east4">Northern Virginia (us-east4)</mat-option>
-                    <mat-option value="northamerica-northeast1">Montréal (northamerica-northeast1)</mat-option>
-                    <mat-option value="europe-west2">London (europe-west2)</mat-option>
-                    <mat-option value="europe-north1">Finland (europe-north1)</mat-option>
-                    <mat-option value="asia-south1">Mumbai (asia-south1)</mat-option>
-                    <mat-option value="asia-southeast1">Singapore (asia-southeast1)</mat-option>
-                    <mat-option value="asia-east1">Taiwan (asia-east1)</mat-option>
-                    <mat-option value="asia-northeast1">Tokyo (asia-northeast1)</mat-option>
-                    <mat-option value="australia-southeast1">Sydney (australia-southeast1)</mat-option>
-                  </mat-select>
-                </mat-form-field>
               </div>
+              
+              <p class="sql-caption" *ngIf="bytesProcessed >= 0">
+                Estimated query size: {{ bytesProcessed | fileSize:1 }}
+              </p>
+              <p *ngIf="lintMessage" class="sql-lint">{{ lintMessage }}</p>
+              <mat-form-field class="wide sql-location">
+                <mat-select placeholder="Processing location" formControlName="location" ([ngModel])="model"
+                  matTooltip="Select processing location." matTooltipPosition="after">
+                  <mat-option value="">Auto-select</mat-option>
+                  <mat-option value="US">United States (US)</mat-option>
+                  <mat-option value="EU">European Union (EU)</mat-option>
+                  <mat-option value="us-east4">Northern Virginia (us-east4)</mat-option>
+                  <mat-option value="northamerica-northeast1">Montréal (northamerica-northeast1)</mat-option>
+                  <mat-option value="europe-west2">London (europe-west2)</mat-option>
+                  <mat-option value="europe-north1">Finland (europe-north1)</mat-option>
+                  <mat-option value="asia-south1">Mumbai (asia-south1)</mat-option>
+                  <mat-option value="asia-southeast1">Singapore (asia-southeast1)</mat-option>
+                  <mat-option value="asia-east1">Taiwan (asia-east1)</mat-option>
+                  <mat-option value="asia-northeast1">Tokyo (asia-northeast1)</mat-option>
+                  <mat-option value="australia-southeast1">Sydney (australia-southeast1)</mat-option>
+                </mat-select>
+              </mat-form-field>
             </form>
           </mat-step>
 
