@@ -186,7 +186,7 @@ export class MapComponent implements AfterViewInit {
   updatePage() {
     if (!this.map) return;
     // const data = this._page === -1 ? this._features : [this._features[this._page]];
-    const layer = this._deckLayer.props.layers.find(l => l.id === LAYER_ID);
+    
   }
   /**
    * Updates styles applied to all GeoJSON features.
@@ -210,7 +210,6 @@ export class MapComponent implements AfterViewInit {
       filled: true,
       extruded: false,
       elevationScale: 0,
-      binary: true,
       lineWidthUnits: 'pixels',
       pointRadiusMinPixels: 1,
       getFillColor: (d) => {
