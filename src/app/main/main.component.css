@@ -133,14 +133,6 @@ mat-progress-spinner {
     background: #e5e3df;
 }
 
-.query-buttons {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-}
-
 .pagination-container {
     display: flex;
     align-items: center;
@@ -161,4 +153,9 @@ mat-progress-spinner {
   width: 72px;
   box-sizing: border-box;
   text-align: center;
+}
+.flex {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }

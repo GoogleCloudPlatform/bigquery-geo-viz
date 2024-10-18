@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit, IterableDiffers, IterableDiffer } from '@angular/core';
+import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit, IterableDiffers, IterableDiffer, Output, EventEmitter } from '@angular/core';
 import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
@@ -36,6 +36,9 @@ export class MapComponent implements AfterViewInit {
   // DOM element for map.
   @ViewChild('mapEl') mapEl: ElementRef;
 
+  // Gives MainComponent the max pagination length, will differ from the total rows retrieved if some rows have null values for a geometry column.
+  @Output() maxPaginationChange = new EventEmitter<number>();
+
   // Maps API instance.
   map: google.maps.Map;
 
@@ -53,7 +56,6 @@ export class MapComponent implements AfterViewInit {
   private _styles: StyleRule[] = [];
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
-  private _geoJSONLayer = new GeoJsonLayer();
 
   // Detects how many times we have received new values.      
   private _numChanges = 0;
@@ -77,6 +79,7 @@ export class MapComponent implements AfterViewInit {
   @Input()
   set geoColumn(geoColumn: string) {
     this._geoColumn = geoColumn;
+    this._page = 0;
     this.updateFeatures();
     this.updateStyles();
   }
@@ -139,7 +142,6 @@ export class MapComponent implements AfterViewInit {
           this.map.addListener('click', (e) => this._onClick(e));
         });
       });
-    console.log("page init again for some reason")
   }
 
   _onClick(e: google.maps.MouseEvent) {
@@ -164,15 +166,13 @@ export class MapComponent implements AfterViewInit {
    */
   updateFeatures() {
     if (!this.map) return;
-
     this._features = GeoJSONService.rowsToGeoJSON(this._rows, this._geoColumn);
-
+    this.maxPaginationChange.emit(this._features.length);
     // Note which types of geometry are being shown.
     this._activeGeometryTypes.clear();
     this._features.forEach((feature) => {
       this._activeGeometryTypes.add(feature.geometry['type']);
     });
-
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({ type: 'FeatureCollection', features: this._features });
     const bounds = new google.maps.LatLngBounds(
@@ -182,12 +182,6 @@ export class MapComponent implements AfterViewInit {
     if (!bounds.isEmpty()) { this.map.fitBounds(bounds); }
   }
 
-
-  updatePage() {
-    if (!this.map) return;
-    // const data = this._page === -1 ? this._features : [this._features[this._page]];
-    
-  }
   /**
    * Updates styles applied to all GeoJSON features.
    */

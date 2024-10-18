@@ -115,6 +115,8 @@ export class MainComponent implements OnInit, OnDestroy {
 
   // Index for viewing geojson data one-by-one, 0 indicates view all data.
   page: number = 0;
+  // Maximum number of features actually displayed on map (differs from total rows if some rows contain null value for a geometry column)
+  maxPagination: number = 0; 
   isEditingPagination: boolean = false 
   @ViewChild('pageInput') pageInput: ElementRef;
 
@@ -182,6 +184,9 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Schema form group
     this.schemaFormGroup = this._formBuilder.group({ geoColumn: [''] });
+    this.schemaFormGroup.get('geoColumn').valueChanges.subscribe(newValue => {
+      this.page = 0;
+    });
 
     // Style rules form group
     const stylesGroupMap = {};
@@ -514,13 +519,16 @@ ${USER_QUERY_END_MARKER}\n
 
   }
 
+  handleMaxPaginationChange(maxPagination: number) {
+    this.maxPagination = maxPagination;
+  }
+
   paginate(_page: number) {
     // Left button was pressed
-    console.log(this.page, this.totalRows)
     if (_page === -1 && this.page !== 0) { 
       this.page -= 1;
     } // Right button was pressed
-    else if (_page === 1 && this.page != this.totalRows) {
+    else if (_page === 1 && this.page != this.maxPagination) {
       this.page += 1;
     }
   }
@@ -536,7 +544,6 @@ ${USER_QUERY_END_MARKER}\n
     const input = event.target as HTMLInputElement;
     const value = input.value;
     
-
     if (!value) {
       this.page = 0;
     }
@@ -545,8 +552,8 @@ ${USER_QUERY_END_MARKER}\n
     if (!isNaN(newPage)) {
       if (newPage < 0) {
         this.page = 0;
-      } else if (newPage > this.rows.length) {
-        this.page = this.rows.length;
+      } else if (newPage > this.maxPagination) {
+        this.page = this.maxPagination;
       }
       else {
         this.page = newPage;
@@ -554,10 +561,6 @@ ${USER_QUERY_END_MARKER}\n
     }
     this.isEditingPagination = false;
   }
-
-
-
-
 
   onApplyStylesClicked() {
     this.clearGeneratedSharingUrl();
