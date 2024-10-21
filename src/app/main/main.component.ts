@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
 import { LOCAL_STORAGE, WebStorageService } from 'angular-webstorage-service';
@@ -113,6 +113,13 @@ export class MainComponent implements OnInit, OnDestroy {
   // UI state
   stepIndex: Number = 0;
 
+  // Index for viewing geojson data one-by-one, 0 indicates view all data.
+  page: number = 0;
+  // Maximum number of features actually displayed on map (differs from total rows if some rows contain null value for a geometry column)
+  maxPagination: number = 0; 
+  isEditingPagination: boolean = false 
+  @ViewChild('pageInput') pageInput: ElementRef;
+
   // Current style rules
   styles: Array<StyleRule> = [];
 
@@ -150,6 +157,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.columnNames = [];
     this.geoColumnNames = [];
     this.rows = [];
+    this.page = 0;
 
     // Read parameters from URL
     this.projectID = this._route.snapshot.paramMap.get("project");
@@ -176,6 +184,9 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Schema form group
     this.schemaFormGroup = this._formBuilder.group({ geoColumn: [''] });
+    this.schemaFormGroup.get('geoColumn').valueChanges.subscribe(newValue => {
+      this.page = 0;
+    });
 
     // Style rules form group
     const stylesGroupMap = {};
@@ -464,6 +475,9 @@ ${USER_QUERY_END_MARKER}\n
     // Clear the existing sharing URL.
     this.clearGeneratedSharingUrl();
 
+    // Reset the data index
+    this.page = 0
+
     let geoColumns;
 
     this._dryRun()
@@ -503,6 +517,49 @@ ${USER_QUERY_END_MARKER}\n
         this._changeDetectorRef.detectChanges();
       });
 
+  }
+
+  handleMaxPaginationChange(maxPagination: number) {
+    this.maxPagination = maxPagination;
+  }
+
+  paginate(_page: number) {
+    // Left button was pressed
+    if (_page === -1 && this.page !== 0) { 
+      this.page -= 1;
+    } // Right button was pressed
+    else if (_page === 1 && this.page != this.maxPagination) {
+      this.page += 1;
+    }
+  }
+
+  startPaginationEditing() {
+    this.isEditingPagination = true;
+    setTimeout(() => {
+      this.pageInput.nativeElement.focus();
+    });
+  }
+
+  finishPaginationEditing(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value;
+    
+    if (!value) {
+      this.page = 0;
+    }
+    const newPage = parseInt(value, 10);
+
+    if (!isNaN(newPage)) {
+      if (newPage < 0) {
+        this.page = 0;
+      } else if (newPage > this.maxPagination) {
+        this.page = this.maxPagination;
+      }
+      else {
+        this.page = newPage;
+      }
+    }
+    this.isEditingPagination = false;
   }
 
   onApplyStylesClicked() {
