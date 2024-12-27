@@ -1,12 +1,16 @@
 /* You can add global styles to this file, and also import other style files */
 
+@import "../node_modules/codemirror/lib/codemirror.css";
+
 html, body {
-    margin: 0;
-    padding: 0;
+  font-size : 95%;
+  margin: 0;
+  padding: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
 color-picker .color-picker {
-    border: none;
-    box-shadow: 1px 0px 4px 2px rgba(0,0,0,0.15);
-    border-radius: 2px;
+  border: none;
+  box-shadow: 1px 0px 4px 2px rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
 }

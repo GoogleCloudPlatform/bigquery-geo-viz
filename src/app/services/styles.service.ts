@@ -70,7 +70,8 @@ export const StyleProps: Array<StyleProp> = [
     name: 'strokeColor',
     type: 'color',
     parse: parseColorString,
-    description: 'Stroke/outline color of a polygon or line.'},
+    description: 'Stroke/outline color of a polygon or line.'
+  },
   {
     name: 'strokeOpacity',
     type: 'number',
@@ -83,7 +84,8 @@ export const StyleProps: Array<StyleProp> = [
     name: 'strokeWeight',
     type: 'number',
     parse: parseNumber,
-    description: 'Stroke/outline width, in pixels, of a polygon or line.'},
+    description: 'Stroke/outline width, in pixels, of a polygon or line.'
+  },
   {
     name: 'circleRadius',
     type: 'number',
@@ -91,16 +93,18 @@ export const StyleProps: Array<StyleProp> = [
     description: ''
       + 'Radius of the circle representing a point, in meters. For example, a "linear" function'
       + ' could be used to map numeric values to point sizes, creating a scatterplot style.'
-    }
+  }
 ];
 
 export const StyleFunctions = [
   {
     name: 'identity',
-    description: 'Data value of each field is used, verbatim, as the styling value.'},
+    description: 'Data value of each field is used, verbatim, as the styling value.'
+  },
   {
     name: 'categorical',
-    description: 'Data values of each field listed in the domain are mapped 1:1 with corresponding styles in the range.'},
+    description: 'Data values of each field listed in the domain are mapped 1:1 with corresponding styles in the range.'
+  },
   {
     name: 'interval',
     description: ''
@@ -119,7 +123,7 @@ export const StyleFunctions = [
     description: ''
       + 'Data values of each field are interpolated exponentially across values in the domain,'
       + ' then styled with a blend of the corresponding styles in the range.'
-    },
+  },
 ];
 
 export class StylesService {
@@ -128,15 +132,15 @@ export class StylesService {
   scaleCache: Map<object, d3Scale.ScaleOrdinal<any, any> | d3Scale.ScaleLinear<number, any> | d3Scale.ScaleThreshold<number, any>>
     = new Map();
 
-  constructor () {
+  constructor() {
 
   }
 
-  uncache () {
+  uncache() {
     this.scaleCache.clear();
   }
 
-  parseStyle (propName: string, row: object, rule: StyleRule) {
+  parseStyle(propName: string, row: object, rule: StyleRule) {
     const prop = StyleProps.find((p) => p.name === propName);
     let scale = this.scaleCache.get(rule);
 
@@ -157,7 +161,7 @@ export class StylesService {
     } else if (rule.function === 'categorical') {
       // Categorical function.
       if (!scale) {
-        const range = <any[]> rule.range.map((v) => prop.parse(v));
+        const range = <any[]>rule.range.map((v) => prop.parse(v));
         scale = d3Scale.scaleOrdinal<string>()
           .domain(rule.domain)
           .range(range)
@@ -170,7 +174,7 @@ export class StylesService {
     } else if (rule.function === 'interval') {
       // Interval function.
       if (!scale) {
-        const range = <any[]> rule.range.map((v) => prop.parse(v));
+        const range = <any[]>rule.range.map((v) => prop.parse(v));
         const tmpScale = d3Scale.scaleThreshold<number, any>()
           .domain(rule.domain.map(Number))
           .range([...range, DEFAULT_STYLES[propName]]);
@@ -183,7 +187,7 @@ export class StylesService {
     } else if (rule.function === 'linear') {
       // Linear function.
       if (!scale) {
-        const range = <any[]> rule.range.map((v) => prop.parse(v));
+        const range = <any[]>rule.range.map((v) => prop.parse(v));
         scale = d3Scale.scaleLinear<number, any>()
           .domain(rule.domain.map(Number))
           .range(range);
@@ -196,12 +200,14 @@ export class StylesService {
     throw new Error('Unknown style rule function: ' + rule.function);
   }
 
-  getIcon (radius: number, color: string, opacity: number) {
+  getIcon(radius: number, color: string, opacity: number) {
     const iconCacheKey = `${radius}:${color}:${opacity}`;
     const imageCacheKey = `${color}:${opacity}`;
 
     // Use cached icon if available.
-    if (this.iconCache.has(iconCacheKey)) { return this.iconCache.get(iconCacheKey); }
+    if (this.iconCache.has(iconCacheKey)) {
+      return this.iconCache.get(iconCacheKey);
+    }
 
     // Use large, scaled icon rather than new image for each size.
     const iconRadius = 256;

@@ -22,16 +22,15 @@ import * as firebase from "firebase/app";
 import "firebase/auth";
 import "firebase/firestore";
 
-import { firebaseConfig } from '../../environments/environment';
-import { StyleRule } from '../services/styles.service';
+import {firebaseConfig} from '../../environments/environment';
 
 const SHARING_COLLECTION = 'GeoVizSharing';
 
 export interface ShareableData {
   sharingVersion: string;
-  projectID : string;
-  jobID : string;
-  location : string | undefined;
+  projectID: string;
+  jobID: string;
+  location: string | undefined;
   styles: string;
   creationTimestampMs: number;
 }
@@ -48,17 +47,17 @@ export class FirestoreService {
     this.db = firebase.firestore();
   }
 
-  storeShareableData(shareableData : ShareableData) : Promise<string> {
+  storeShareableData(shareableData: ShareableData): Promise<string> {
     return this.db.collection(SHARING_COLLECTION).add(shareableData)
-      .then(function(docRef) {
-	return docRef.id;
+      .then(function (docRef) {
+        return docRef.id;
       });
   }
 
-  getSharedData(docId: string) : Promise<ShareableData> {
-    return this.db.collection(SHARING_COLLECTION).doc(docId).get().then(function(doc) {
+  getSharedData(docId: string): Promise<ShareableData> {
+    return this.db.collection(SHARING_COLLECTION).doc(docId).get().then(function (doc) {
       if (!doc.exists) {
-	  throw new Error('Shared visualization does not exist. Please check your URL!');
+        throw new Error('Shared visualization does not exist. Please check your URL!');
       }
       return doc.data() as ShareableData;
     });
@@ -69,6 +68,6 @@ export class FirestoreService {
       credential['id_token'],
       credential['access_token']
     );
-    firebase.auth().signInWithCredential(firebase_credential)
+    firebase.auth().signInWithCredential(firebase_credential);
   }
 }

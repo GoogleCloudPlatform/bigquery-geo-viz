@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { environment } from '../../environments/environment';
-import { MAX_RESULTS, TIMEOUT_MS } from '../app.constants';
+import {environment} from '../../environments/environment';
+import {MAX_RESULTS, TIMEOUT_MS} from '../app.constants';
 
 export const ColumnType = {
   STRING: 'string',
@@ -79,7 +79,8 @@ export class BigQueryService {
   public isSignedIn = false;
   public projects: Array<Project> = [];
 
-  private signinChangeCallback = () => { };
+  private signinChangeCallback = () => {
+  };
 
   /**
    * Initializes the service. Must be called before any queries are made.
@@ -89,9 +90,9 @@ export class BigQueryService {
     return pendingGapi
       .then(() => {
         gapi.client.init({
-          clientId: environment.authClientID,
-          scope: environment.authScope
-        })
+            clientId: environment.authClientID,
+            scope: environment.authScope
+          })
           .then(() => {
             gapi['auth2'].getAuthInstance().isSignedIn.listen(((isSignedIn) => {
               this.isSignedIn = isSignedIn;
@@ -114,9 +115,9 @@ export class BigQueryService {
    * Returns current user credentials.
    */
   getCredential(): Object {
-    let authResponse =  gapi['auth2'].getAuthInstance().currentUser.get().getAuthResponse(true);
+    let authResponse = gapi['auth2'].getAuthInstance().currentUser.get().getAuthResponse(true);
     if (authResponse) {
-      return { id_token: authResponse.id_token, access_token: authResponse.access_token };
+      return {id_token: authResponse.id_token, access_token: authResponse.access_token};
     }
     return null;
   }
@@ -148,9 +149,11 @@ export class BigQueryService {
    * Queries and returns a list of GCP projects available to the current user.
    */
   getProjects(): Promise<Array<Project>> {
-    if (this.projects.length) { return Promise.resolve(this.projects); }
+    if (this.projects.length) {
+      return Promise.resolve(this.projects);
+    }
 
-    return gapi.client.request({ path: `https://www.googleapis.com/bigquery/v2/projects?maxResults=100000` })
+    return gapi.client.request({path: `https://www.googleapis.com/bigquery/v2/projects?maxResults=100000`})
       .then((response) => {
         this.projects = response.result.projects.slice();
         this.projects.sort((p1, p2) => p1['id'] > p2['id'] ? 1 : -1);
@@ -170,10 +173,11 @@ export class BigQueryService {
       if (!response.result.statistics.query) {
         throw new Error('Job id is not for a query job.');
       }
-      if (response.result.statistics.query.statementType != 'SELECT') {
+      if (response.result.statistics.query.statementType !== 'SELECT') {
         throw new Error('Job id is not for a SELECT statement.');
       }
-      return { sql: response.result.configuration.query.query, bytesProcessed: Number(response.result.statistics.query.totalBytesProcessed) };
+
+      return {sql: response.result.configuration.query.query, bytesProcessed: Number(response.result.statistics.query.totalBytesProcessed)};
     });
   }
 
@@ -193,28 +197,30 @@ export class BigQueryService {
         useLegacySql: false
       }
     };
-    if (location) { configuration.query['location'] = location; }
+    if (location) {
+      configuration.query['location'] = location;
+    }
     return gapi.client.request({
       path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs`,
       method: 'POST',
-      body: { configuration },
+      body: {configuration},
     }).then((response) => {
-      const { schema, statementType } = response.result.statistics.query;
+      const {schema, statementType} = response.result.statistics.query;
       const totalBytesProcessed = Number(response.result.statistics.query.totalBytesProcessed);
-      return { ok: true, schema, statementType, totalBytesProcessed };
+      return {ok: true, schema, statementType, totalBytesProcessed};
     }).catch((e) => {
       if (e && e.result && e.result.error) {
         throw new Error(e.result.error.message);
       }
       console.warn(e);
-      return { ok: false };
+      return {ok: false};
     });
   }
 
   normalizeRows(rows: Array<Object>, normalizedCols: Array<Object>, stats: Map<String, ColumnStat>) {
     return (rows || []).map((row) => {
       const rowObject = {};
-      row['f'].forEach(({ v }, index) => {
+      row['f'].forEach(({v}, index) => {
         const column = normalizedCols[index];
         if (column['type'] === ColumnType.NUMBER) {
           v = v === '' || v === null ? null : Number(v);
@@ -240,7 +246,9 @@ export class BigQueryService {
       timeoutMs: TIMEOUT_MS,
       pageToken: pageToken
     };
-    if (location) { body['location'] = location; }
+    if (location) {
+      body['location'] = location;
+    }
 
     return gapi.client.request({
       path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobID}`,
@@ -253,7 +261,7 @@ export class BigQueryService {
       // Normalize row structure.
       const rows = this.normalizeRows(response.result.rows, normalized_cols, stats);
 
-      return { rows, stats, pageToken: response.result.pageToken } as BigQueryResponse;
+      return {rows, stats, pageToken: response.result.pageToken} as BigQueryResponse;
     });
   }
 
@@ -264,7 +272,9 @@ export class BigQueryService {
       timeoutMs: TIMEOUT_MS,
       useLegacySql: false
     };
-    if (location) { body['location'] = location; }
+    if (location) {
+      body['location'] = location;
+    }
     return gapi.client.request({
       path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
       method: 'POST',
@@ -281,7 +291,7 @@ export class BigQueryService {
       const columns = (response.result.schema.fields || []).map((field) => {
         if (isNumericField(field)) {
           field.type = ColumnType.NUMBER;
-          stats.set(field.name, { min: Infinity, max: -Infinity, nulls: 0 });
+          stats.set(field.name, {min: Infinity, max: -Infinity, nulls: 0});
         } else {
           field.type = ColumnType.STRING;
         }
@@ -298,8 +308,10 @@ export class BigQueryService {
 
       const totalRows = Number(response.result.totalRows);
 
-      return { columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobID: response.result.jobReference.jobId,
-               totalBytesProcessed: Number(response.result.totalBytesProcessed)} as BigQueryResponse;
+      return {
+        columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobID: response.result.jobReference.jobId,
+        totalBytesProcessed: Number(response.result.totalBytesProcessed)
+      } as BigQueryResponse;
     });
   }
 }

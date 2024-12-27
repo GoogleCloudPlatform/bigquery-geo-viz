@@ -1,5 +1,6 @@
-@import '~@angular/material/theming';
-@include mat-core();
+@use '@angular/material' as mat;
+
+@include mat.core();
 
 // primary: #00539b
 // accent: #d3e9ef
@@ -22,19 +23,19 @@ $primary: (
     A400: #d3e9ef,
     A700: #d3e9ef,
     contrast: (
-        50: $black-87-opacity,
-        100: $black-87-opacity,
-        200: $black-87-opacity,
-        300: $black-87-opacity,
-        400: $black-87-opacity,
+        50: rgba(black, 0.87),
+        100: rgba(black, 0.87),
+        200: rgba(black, 0.87),
+        300: rgba(black, 0.87),
+        400: rgba(black, 0.87),
         500: white,
         600: white,
         700: white,
         800: white,
         900: white,
-        A100: $black-87-opacity,
-        A200: $black-87-opacity,
-        A400: $black-87-opacity,
+        A100: rgba(black, 0.87),
+        A200: rgba(black, 0.87),
+        A400: rgba(black, 0.87),
         A700: white,
     )
 );
@@ -55,27 +56,31 @@ $secondary: (
     A400: #d3e9ef,
     A700: #d3e9ef,
     contrast: (
-        50: $black-87-opacity,
-        100: $black-87-opacity,
-        200: $black-87-opacity,
-        300: $black-87-opacity,
-        400: $black-87-opacity,
+        50: rgba(black, 0.87),
+        100: rgba(black, 0.87),
+        200: rgba(black, 0.87),
+        300: rgba(black, 0.87),
+        400: rgba(black, 0.87),
         500: white,
         600: white,
         700: white,
         800: white,
         900: white,
-        A100: $black-87-opacity,
-        A200: $black-87-opacity,
-        A400: $black-87-opacity,
+        A100: rgba(black, 0.87),
+        A200: rgba(black, 0.87),
+        A400: rgba(black, 0.87),
         A700: white,
     )
 );
+$bqmapper-primary: mat.define-palette($primary);
+$bqmapper-accent:  mat.define-palette($secondary, 500, 900, A100);
+$bqmapper-warn:    mat.define-palette(mat.$red-palette);
 
-$bqmapper-primary: mat-palette($primary);
-$bqmapper-accent:  mat-palette($secondary, 500, 900, A100);
-$bqmapper-warn:    mat-palette($mat-red);
+$bqmapper-theme: mat.define-light-theme((
+  color:(
+    primary: $bqmapper-primary,
+    accent: $bqmapper-accent,
+    warn: $bqmapper-warn)
+));
 
-$bqmapper-theme: mat-light-theme($bqmapper-primary, $bqmapper-accent, $bqmapper-warn);
-
-@include angular-material-theme($bqmapper-theme);
+@include mat.all-component-themes($bqmapper-theme);

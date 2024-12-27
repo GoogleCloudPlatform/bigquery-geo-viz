@@ -11,6 +11,11 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/scss"
+              ]
+            },
             "outputPath": "dist",
             "index": "src/index.html",
             "main": "src/main.ts",
@@ -22,7 +27,8 @@
             ],
             "styles": [
               "src/theme.scss",
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/codemirror/lib/codemirror.css"
             ],
             "scripts": []
           },
@@ -43,7 +49,21 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ]
-            }
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true,
+              "fileReplacements": [ {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
+            },
+            "defaultConfiguration": "development"
           }
         },
         "serve": {
@@ -73,7 +93,8 @@
             "scripts": [],
             "styles": [
               "src/theme.scss",
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/codemirror/lib/codemirror.css"
             ],
             "assets": [
               "src/assets",
@@ -102,11 +123,9 @@
       "projectType": "application"
     }
   },
-  "defaultProject": "fusiontables2earth",
   "schematics": {
     "@schematics/angular:component": {
       "prefix": "app",
-      "styleext": "css"
     },
     "@schematics/angular:directive": {
       "prefix": "app"

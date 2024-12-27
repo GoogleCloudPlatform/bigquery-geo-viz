@@ -15,8 +15,6 @@
  */
 
 import { Component, ViewContainerRef } from '@angular/core';
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/map';
 
 @Component({
   selector: 'app-root',
@@ -26,4 +24,6 @@ import 'rxjs/add/operator/map';
 export class AppComponent {
   readonly title = 'BigQuery Geo Viz';
   constructor(public viewContainerRef: ViewContainerRef) {}
+
+
 }
