@@ -19,7 +19,8 @@ import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
 import bbox from '@turf/bbox';
-import { GeoJSONService, GeoJSONFeature } from '../services/geojson.service';
+import { GeoJSONService } from '../services/geojson.service';
+import { Feature } from 'geojson';
 
 const LAYER_ID = 'geojson-layer';
 
@@ -49,12 +50,12 @@ export class MapComponent implements AfterViewInit {
   readonly styler = new StylesService();
 
   private _rows: object[] = [];
-  private _features: GeoJSONFeature[] = [];
+  private _features: Feature[] = [];
   private _styles: StyleRule[] = [];
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
 
-  // Detects how many times we have received new values.      
+  // Detects how many times we have received new values.
   private _numChanges = 0;
   // Counts after how many changes we should update the map.
   private _batchSize = DEFAULT_BATCH_SIZE;
@@ -131,9 +132,9 @@ export class MapComponent implements AfterViewInit {
       });
   }
 
-  _onClick(e: google.maps.MouseEvent) {
+  _onClick(e: google.maps.MapMouseEvent) {
     // TODO(donmccurdy): Do we need a public API for determining when layer is ready?
-    if (!this._deckLayer._deck.layerManager) return;
+    // if (!this._deckLayer._deck.layerManager) return;
 
     const { x, y } = e['pixel'];
     const picked = this._deckLayer.pickObject({ x, y, radius: 4 });
@@ -175,7 +176,7 @@ export class MapComponent implements AfterViewInit {
    * Updates styles applied to all GeoJSON features.
    */
   updateStyles() {
-    if (!this.map) return;
+    if (!this.map) { return; }
     this.styler.uncache();
 
     // Remove old features.
@@ -183,32 +184,46 @@ export class MapComponent implements AfterViewInit {
 
     // Create GeoJSON layer.
     const colorRe = /(\d+), (\d+), (\d+)/;
+
     const layer = new GeoJsonLayer({
       id: LAYER_ID,
       data: this._features,
+
       pickable: true,
       autoHighlight: true,
       highlightColor: [219, 68, 55], // #DB4437
       stroked: this.hasStroke(),
       filled: true,
       extruded: false,
-      elevationScale: 0,
+      // elevationScale: 0,
       lineWidthUnits: 'pixels',
       pointRadiusMinPixels: 1,
-      getFillColor: (d) => {
+      getFillColor: d => {
         let color = this.getStyle(d, this._styles, 'fillColor');
-        if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
+        if (typeof color === 'string') {
+          color = color.match(colorRe).slice(1, 4).map(Number);
+        }
         const opacity = this.getStyle(d, this._styles, 'fillOpacity');
-        return [...color, opacity * 256];
+
+        return [color[0], color[1], color[2], opacity * 256];
       },
-      getLineColor: (d) => {
+      getLineColor: d => {
         let color = this.getStyle(d, this._styles, 'strokeColor');
-        if (typeof color === 'string') color = color.match(colorRe).slice(1, 4).map(Number);
+        if (typeof color === 'string') {
+          color = color.match(colorRe).slice(1, 4).map(Number);
+        }
         const opacity = this.getStyle(d, this._styles, 'strokeOpacity');
-        return [...color, opacity * 256];
+
+        return [color[0], color[1], color[2], opacity * 256];
       },
       getLineWidth: (d) => this.getStyle(d, this._styles, 'strokeWeight'),
-      getRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
+      getPointRadius: (d) => this.getStyle(d, this._styles, 'circleRadius'),
+      updateTriggers: {
+        getFillColor: [this._styles],
+        getLineColor: [this._styles],
+        getLineWidth: [this._styles],
+        getPointRadius: [this._styles]
+      }
     });
 
     this._deckLayer.setProps({ layers: [layer] });
@@ -220,6 +235,7 @@ export class MapComponent implements AfterViewInit {
    * @param style
    */
   getStyle(feature, styles: StyleRule[], styleName: string) {
+    // console.log(feature, styles, styleName, this.styler.parseStyle(styleName, feature['properties'], styles[styleName]))
     return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
   }
 
@@ -247,7 +263,7 @@ export class MapComponent implements AfterViewInit {
    * @param feature
    * @param latLng
    */
-  showInfoWindow(feature: GeoJSONFeature, latLng: google.maps.LatLng) {
+  showInfoWindow(feature: Feature, latLng: google.maps.LatLng) {
     this.infoWindow.setContent(`<pre>${JSON.stringify(feature.properties, null, 2)}</pre>`);
     this.infoWindow.open(this.map);
     this.infoWindow.setPosition(latLng);

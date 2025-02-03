@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-import { Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { FormBuilder, FormGroup, FormControl, FormArray, Validators } from '@angular/forms';
-import { LOCAL_STORAGE, WebStorageService } from 'angular-webstorage-service';
-import { MatTableDataSource, MatSnackBar } from '@angular/material';
-import { StepperSelectionEvent } from '@angular/cdk/stepper';
-import { Subject } from 'rxjs/Subject';
-import { Subscription } from 'rxjs/Subscription';
-import 'rxjs/add/operator/debounceTime';
-import 'rxjs/add/operator/map';
-import * as CryptoJS from "crypto-js";
+import {Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy, AfterViewInit} from '@angular/core';
+import {ActivatedRoute} from '@angular/router';
+import {FormBuilder, FormGroup, FormControl, FormArray, Validators} from '@angular/forms';
+import {LOCAL_STORAGE, StorageService} from 'ngx-webstorage-service';
 
-import { StyleProps, StyleRule } from '../services/styles.service';
+import {MatTableDataSource} from '@angular/material/table';
+import {MatSnackBar} from '@angular/material/snack-bar';
+
+import {StepperSelectionEvent} from '@angular/cdk/stepper';
+
+import {Subject, Subscription} from 'rxjs';
+
+import {debounceTime} from 'rxjs/operators';
+
+import * as CryptoJS from 'crypto-js';
+
+import {StyleProps, StyleRule} from '../services/styles.service';
 import {
   BigQueryService,
   BigQueryColumn,
@@ -36,7 +40,8 @@ import {
   BigQueryResponse
 } from '../services/bigquery.service';
 
-import { FirestoreService, ShareableData } from '../services/firestore.service'
+import {FirestoreService, ShareableData} from '../services/firestore.service';
+
 import {
   Step,
   SAMPLE_QUERY,
@@ -60,7 +65,7 @@ const USER_QUERY_END_MARKER = '--__USER__QUERY__END__';
   styleUrls: ['./main.component.css']
 })
 
-export class MainComponent implements OnInit, OnDestroy {
+export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly title = 'BigQuery Geo Viz';
   readonly StyleProps = StyleProps;
   readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
@@ -116,18 +121,11 @@ export class MainComponent implements OnInit, OnDestroy {
   // Current style rules
   styles: Array<StyleRule> = [];
 
-  // CodeMirror configuration
-  readonly cmConfig = {
-    indentWithTabs: true,
-    smartIndent: true,
-    lineNumbers: true,
-    lineWrapping: true
-  };
   readonly cmDebouncer: Subject<string> = new Subject();
   cmDebouncerSub: Subscription;
 
   constructor(
-    @Inject(LOCAL_STORAGE) private _storage: WebStorageService,
+    @Inject(LOCAL_STORAGE) private _storage: StorageService,
     private _formBuilder: FormBuilder,
     private _snackbar: MatSnackBar,
     private _changeDetectorRef: ChangeDetectorRef,
@@ -136,13 +134,18 @@ export class MainComponent implements OnInit, OnDestroy {
 
     // Debounce CodeMirror change events to avoid running extra dry runs.
     this.cmDebouncerSub = this.cmDebouncer
-      .debounceTime(DEBOUNCE_MS)
-      .subscribe((value: string) => { this._dryRun(); });
+      .pipe(debounceTime(DEBOUNCE_MS))
+      .subscribe((value: string) => {
+        this._dryRun();
+      });
 
     // Set up BigQuery service.
     this.dataService.onSigninChange(() => this.onSigninChange());
     this.dataService.init()
       .catch((e) => this.showMessage(parseErrorMessage(e)));
+  }
+
+  ngAfterViewInit(): void {
   }
 
   ngOnInit() {
@@ -152,12 +155,12 @@ export class MainComponent implements OnInit, OnDestroy {
     this.rows = [];
 
     // Read parameters from URL
-    this.projectID = this._route.snapshot.paramMap.get("project");
-    this.dataset = this._route.snapshot.paramMap.get("dataset");
-    this.table = this._route.snapshot.paramMap.get("table");
-    this.jobID = this._route.snapshot.paramMap.get("job");
-    this.location = this._route.snapshot.paramMap.get("location") || ''; // Empty string for 'Auto Select'
-    this.sharingId = this._route.snapshot.queryParams["shareid"];
+    this.projectID = this._route.snapshot.paramMap.get('project');
+    this.dataset = this._route.snapshot.paramMap.get('dataset');
+    this.table = this._route.snapshot.paramMap.get('table');
+    this.jobID = this._route.snapshot.paramMap.get('job');
+    this.location = this._route.snapshot.paramMap.get('location') || ''; // Empty string for 'Auto Select'
+    this.sharingId = this._route.snapshot.queryParams['shareid'];
 
     // Data form group
     this.dataFormGroup = this._formBuilder.group({
@@ -165,7 +168,7 @@ export class MainComponent implements OnInit, OnDestroy {
       sql: ['', Validators.required],
       location: [''],
     });
-    this.dataFormGroup.controls.projectID.valueChanges.debounceTime(200).subscribe(() => {
+    this.dataFormGroup.controls.projectID.valueChanges.pipe(debounceTime(200)).subscribe(() => {
       this.dataService.getProjects()
         .then((projects) => {
           this.matchingProjects = projects.filter((project) => {
@@ -175,7 +178,7 @@ export class MainComponent implements OnInit, OnDestroy {
     });
 
     // Schema form group
-    this.schemaFormGroup = this._formBuilder.group({ geoColumn: [''] });
+    this.schemaFormGroup = this._formBuilder.group({geoColumn: ['']});
 
     // Style rules form group
     const stylesGroupMap = {};
@@ -203,9 +206,10 @@ export class MainComponent implements OnInit, OnDestroy {
       styles: hashedStyleValues.toString(),
       creationTimestampMs: Date.now()
     };
+
     return this.storageService.storeShareableData(shareableData).then((written_doc_id) => {
       this.generatedSharingId = written_doc_id;
-    })
+    });
   }
 
   restoreDataFromSharedStorage(docId: string): Promise<ShareableData> {
@@ -213,7 +217,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   saveDataToLocalStorage(projectID: string, sql: string, location: string) {
-    this._storage.set(this.localStorageKey, { projectID: projectID, sql: sql, location: location });
+    this._storage.set(this.localStorageKey, {projectID: projectID, sql: sql, location: location});
   }
 
   loadDataFromLocalStorage(): { projectID: string, sql: string, location: string } {
@@ -247,8 +251,13 @@ export class MainComponent implements OnInit, OnDestroy {
   onSigninChange() {
     this._ngZone.run(() => {
       this.isSignedIn = this.dataService.isSignedIn;
-      if (!this.dataService.isSignedIn) { return; }
+      if (!this.dataService.isSignedIn) {
+        return;
+      }
       this.user = this.dataService.getUser();
+
+      console.log(`User: ${this.user}`);
+
       this.storageService.authorize(this.dataService.getCredential());
       this.dataService.getProjects()
         .then((projects) => {
@@ -270,7 +279,8 @@ export class MainComponent implements OnInit, OnDestroy {
         });
       } else if (this._hasTableParams() && this._tableParamsValid()) {
         this.dataFormGroup.patchValue({
-          sql: `SELECT * FROM \`${this.projectID}.${this.dataset}.${this.table}\`;`,
+          sql: `SELECT *
+                FROM \`${this.projectID}.${this.dataset}.${this.table}\`;`,
           projectID: this.projectID,
         });
       } else if (this.sharingId) {
@@ -313,7 +323,7 @@ export class MainComponent implements OnInit, OnDestroy {
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
         this.stylesFormGroup.patchValue(unencryptedStyles);
         this.updateStyles();
-      }).catch((e) => this.showMessage("Cannot retrieve styling options."));
+      }).catch((e) => this.showMessage('Cannot retrieve styling options.'));
     }
   }
 
@@ -327,12 +337,13 @@ export class MainComponent implements OnInit, OnDestroy {
 
   generateSharingUrl() {
     if (!this._hasJobParams()) {
-      this.showMessage("Please first run a valid query before generating a sharing URL.");
+      this.showMessage('Please first run a valid query before generating a sharing URL.');
       return;
     }
     if (this.stepIndex == Step.SHARE && this.stepperChanged && this.sharingDataChanged) {
       this.sharingDataChanged = false;
       this.sharingIdGenerationPending = true;
+
       this.saveDataToSharedStorage().then(() => {
         this.sharingFormGroup.patchValue({
           sharingUrl: window.location.origin + '?shareid=' + this.generatedSharingId
@@ -344,16 +355,16 @@ export class MainComponent implements OnInit, OnDestroy {
 
   onStepperChange(e: StepperSelectionEvent) {
     this.stepIndex = e.selectedIndex;
-    if (e.selectedIndex != e.previouslySelectedIndex) {
+    if (e.selectedIndex !== e.previouslySelectedIndex) {
       this.stepperChanged = true;
     } else {
       this.stepperChanged = false;
     }
-    gtag('event', 'step', { event_label: `step ${this.stepIndex}` });
+    gtag('event', 'step', {event_label: `step ${this.stepIndex}`});
   }
 
   dryRun() {
-    this.cmDebouncer.next();
+    this.cmDebouncer.next('next');
   }
 
   _hasJobParams(): boolean {
@@ -368,6 +379,7 @@ export class MainComponent implements OnInit, OnDestroy {
     return this.projectIDRegExp.test(this.projectID) &&
       this.jobIDRegExp.test(this.jobID);
   }
+
   _tableParamsValid(): boolean {
     return this.projectIDRegExp.test(this.projectID) &&
       this.datasetIDRegExp.test(this.dataset) &&
@@ -375,11 +387,15 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   _dryRun(): Promise<BigQueryDryRunResponse> {
-    const { projectID, sql, location } = this.dataFormGroup.getRawValue();
-    if (!projectID) return;
+    const {projectID, sql, location} = this.dataFormGroup.getRawValue();
+    if (!projectID) {
+      return;
+    }
     const dryRun = this.dataService.prequery(projectID, sql, location)
       .then((response: BigQueryDryRunResponse) => {
-        if (!response.ok) throw new Error('Query analysis failed.');
+        if (!response.ok) {
+          throw new Error('Query analysis failed.');
+        }
         const geoColumn = response.schema.fields.find((f) => f.type === 'GEOGRAPHY');
         if (response.statementType !== 'SELECT') {
           throw new Error('Expected a SELECT statement.');
@@ -405,7 +421,11 @@ export class MainComponent implements OnInit, OnDestroy {
       return;
     }
     count = count + 1;
-    return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats).then(({ rows, stats, pageToken }) => {
+    return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats).then(({
+                                                                                                                     rows,
+                                                                                                                     stats,
+                                                                                                                     pageToken
+                                                                                                                   }) => {
       this.rows.push(...rows);
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
@@ -414,24 +434,14 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   convertToUserQuery(geovizQuery: string): string {
-    if (!geovizQuery) return '';
+    if (!geovizQuery) {
+      return '';
+    }
 
-    const lines = geovizQuery.split('\n');
-    let userQueryStarted = false;
-    let userQuery = '';
-    lines.forEach((line) => {
-      if (line.includes(USER_QUERY_START_MARKER)) {
-        userQueryStarted = true;
-      } else if (line.includes(USER_QUERY_END_MARKER)) {
-        userQueryStarted = false;
-      } else {
-        if (userQueryStarted) {
-          userQuery += line + '\n';
-        }
-      }
-    });
-
-    return userQuery.trim();
+    return geovizQuery.substring(
+      geovizQuery.indexOf(USER_QUERY_START_MARKER) + USER_QUERY_START_MARKER.length,
+      geovizQuery.indexOf(USER_QUERY_END_MARKER)
+    ).trim() + '\n';
   }
 
   convertToGeovizQuery(userQuery: string, geoColumns: BigQueryColumn[], numCols: number): string {
@@ -439,18 +449,19 @@ export class MainComponent implements OnInit, OnDestroy {
     const nonGeoClause = hasNonGeoColumns
       ? `* EXCEPT(${geoColumns.map((f) => `\`${f.name}\``).join(', ')}),`
       : '';
-    return `SELECT
-  ${nonGeoClause}
-  ${ geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ')}
-FROM (
-${USER_QUERY_START_MARKER}\n
-${userQuery.replace(/;\s*$/, '')}\n
-${USER_QUERY_END_MARKER}\n
-);`;
+    return `SELECT ${nonGeoClause}
+                     ${geoColumns.map((f) => `ST_AsGeoJson(\`${f.name}\`) as \`${f.name}\``).join(', ')}
+            FROM (
+                   ${USER_QUERY_START_MARKER}
+                   ${userQuery.replace(/;\s*$/, '')}
+                   ${USER_QUERY_END_MARKER}
+            );`;
   }
 
   query() {
-    if (this.pending) { return; }
+    if (this.pending) {
+      return;
+    }
     this.pending = true;
 
     // We will save the query information to local store to be restored next
@@ -474,14 +485,14 @@ ${USER_QUERY_END_MARKER}\n
         this.jobWrappedSql = this.convertToGeovizQuery(sql, geoColumns, dryRunResponse.schema.fields.length);
         return this.dataService.query(this.projectID, this.jobWrappedSql, this.location);
       })
-      .then(({ columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed }) => {
+      .then(({columns, columnNames, rows, stats, totalRows, pageToken, jobID, totalBytesProcessed}) => {
         this.columns = columns;
         this.columnNames = columnNames;
         this.geoColumnNames = geoColumns.map((f) => f.name);
         this.rows = rows;
         this.stats = stats;
         this.data = new MatTableDataSource(rows.slice(0, MAX_RESULTS_PREVIEW));
-        this.schemaFormGroup.patchValue({ geoColumn: geoColumns[0].name });
+        this.schemaFormGroup.patchValue({geoColumn: geoColumns[0].name});
         this.totalRows = totalRows;
         this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
@@ -511,7 +522,9 @@ ${USER_QUERY_END_MARKER}\n
   }
 
   updateStyles() {
-    if (this.stylesFormGroup.invalid) { return; }
+    if (this.stylesFormGroup.invalid) {
+      return;
+    }
     this.styles = this.stylesFormGroup.getRawValue();
   }
 
@@ -522,10 +535,10 @@ ${USER_QUERY_END_MARKER}\n
   onFillPreset() {
     switch (this.stepIndex) {
       case Step.DATA:
-        this.dataFormGroup.patchValue({ sql: SAMPLE_QUERY });
+        this.dataFormGroup.patchValue({sql: SAMPLE_QUERY});
         break;
       case Step.SCHEMA:
-        this.schemaFormGroup.patchValue({ geoColumn: 'WKT' });
+        this.schemaFormGroup.patchValue({geoColumn: 'WKT'});
         break;
       case Step.STYLE:
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.fillColor, SAMPLE_FILL_COLOR.domain.length);
@@ -538,7 +551,7 @@ ${USER_QUERY_END_MARKER}\n
         console.warn(`Unexpected step index, ${this.stepIndex}.`);
     }
 
-    gtag('event', 'preset', { event_label: `step ${this.stepIndex}` });
+    gtag('event', 'preset', {event_label: `step ${this.stepIndex}`});
   }
 
   setNumStops(group: FormGroup, numStops: number): void {
@@ -569,15 +582,21 @@ ${USER_QUERY_END_MARKER}\n
 
   getPropStatus(propName: string): string {
     const rule = <StyleRule>this.stylesFormGroup.controls[propName].value;
-    if (!rule.isComputed && rule.value) { return 'global'; }
-    if (rule.isComputed && rule.function) { return 'computed'; }
+    if (!rule.isComputed && rule.value) {
+      return 'global';
+    }
+    if (rule.isComputed && rule.function) {
+      return 'computed';
+    }
     return 'none';
   }
 
   getPropStats(propName: string): ColumnStat {
     const group = <FormGroup>this.stylesFormGroup.controls[propName];
     const rawValue = group.value;
-    if (!rawValue.property) { return null; }
+    if (!rawValue.property) {
+      return null;
+    }
     return this.stats.get(rawValue.property);
   }
 
@@ -588,13 +607,15 @@ ${USER_QUERY_END_MARKER}\n
   showMessage(message: string, duration: number = 5000) {
     console.warn(message);
     this._ngZone.run(() => {
-      this._snackbar.open(message, undefined, { duration: duration });
+      this._snackbar.open(message, undefined, {duration: duration});
     });
   }
 }
 
 function parseErrorMessage(e, defaultMessage = 'Something went wrong') {
-  if (e.message) { return e.message; }
+  if (e.message) {
+    return e.message;
+  }
   if (e.result && e.result.error && e.result.error.message) {
     return e.result.error.message;
   }

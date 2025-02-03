@@ -55,7 +55,7 @@ export class RuleInputComponent implements OnInit {
   @Input() stats: ColumnStat;
   @Input() columns: Array<string> = [];
 
-  private _rule: StyleRule = {
+  protected _rule: StyleRule = {
     isComputed: false,
     value: '',
     function: '',

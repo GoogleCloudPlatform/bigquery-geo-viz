@@ -26,3 +26,4 @@ declare var pendingGapi: Promise<undefined>;
 
 /* Google Analytics */
 declare var gtag: (method: string, action: string, detail: Object) => undefined;
+

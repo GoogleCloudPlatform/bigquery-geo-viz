@@ -1,56 +1,60 @@
 .view {
-    display: flex;
-    flex-direction: row-reverse;
+  display: flex;
+  flex-direction: row-reverse;
 }
 
 .header-profile {
-    font-size: 14px;
-    padding: 0 16px;
+  font-size: 14px;
+  padding: 0 16px;
 }
 
 .header-logo {
-    height: 32px;
-    margin-right: 0.5em;
+  height: 32px;
+  margin-right: 0.5em;
+}
+
+.header-logo-text {
+  font-size: large;
 }
 
 .flex-spacer {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .toolbar-divider {
-    padding: 0 16px;
+  padding: 0 16px;
 }
 
 .drawer {
-    max-width: 600px;
-    max-height: calc(100vh - 64px);
-    overflow: auto;
-    flex-shrink: 0;
+  max-width: 600px;
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  flex-shrink: 0;
 }
 
 .sidenav-container {
-    position: fixed;
-    left: 0;
-    right: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
 }
 
 .stepper {
-    max-width: 100%;
-    overflow: auto;
-    flex-shrink: 0;
+  max-width: 100%;
+  overflow: auto;
+  flex-shrink: 0;
 }
 
 mat-progress-spinner {
-    display: inline-block;
-    vertical-align: middle;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .apply-style-button {
-    margin-top: 0.5em;
+  margin-top: 0.5em;
 }
 
 .create-share-link-button {
-    margin-bottom: 0.5em;
+  margin-bottom: 0.5em;
 }
 
 .toggle-button,
@@ -71,64 +75,91 @@ mat-progress-spinner {
 }
 
 .sql-form-field {
-    display: block;
-    width: 100%;
-    max-width: 600px;
+  display: block;
+  width: 100%;
+  max-width: 600px;
 }
 
 .sql-lint {
-    font-size: 0.8em;
-    color: crimson;
+  font-size: 0.8em;
+  color: crimson;
 }
 
 .sql-caption {
-    color: #888;
-    font-size: 0.8em;
+  color: #888;
+  font-size: 0.8em;
 }
 
 .sql-location {
-    margin-top: 1em;
-    display: block;
+  margin-top: 1em;
+  display: block;
 }
 
 .num-results-text {
-    font-size: 0.8em;
+  font-size: 0.8em;
 }
 
 .result-table {
-    overflow-x: auto;
+  overflow-x: auto;
 }
 
 .result-table-cell {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .styles-prop-list .rule-badge {
-    font-size: 0.6em;
-    font-weight: 500;
-    display: inline-block;
-    padding: 0.5em;
-    color: #ffffff;
-    border-radius: 2px;
+  font-size: 0.6em;
+  font-weight: 500;
+  display: inline-block;
+  padding: 0.5em;
+  color: #ffffff;
+  border-radius: 2px;
 }
 
 .styles-prop-list mat-panel-title {
-    width: 150px;
-    flex-grow: 0;
+  width: 150px;
+  flex-grow: 0;
 }
 
-.styles-prop-list .rule-badge.computed { background: #00539b; }
-.styles-prop-list .rule-badge.global { background: #F4B400; }
-.styles-prop-list .rule-badge.none { background: #e5e3df; color: #000000; }
+.styles-prop-list .rule-badge.computed {
+  background: #00539b;
+}
+
+.styles-prop-list .rule-badge.global {
+  background: #F4B400;
+}
+
+.styles-prop-list .rule-badge.none {
+  background: #e5e3df;
+  color: #000000;
+}
 
 .mat-toolbar.mat-primary,
 .mat-raised-button.mat-primary,
 .mat-step-header .mat-step-icon {
-    color: #FFFFFF;
+  color: #FFFFFF;
+}
+
+.mat-button.mat-primary .mat-button-focus-overlay {
+  background-color: red;
 }
 
 .mat-raised-button[disabled] {
-    background: #e5e3df;
+  background: #e5e3df;
+}
+
+.mat-toolbar a {
+  text-decoration: none;
+}
+
+.mat-toolbar h6 h5 {
+  font: 500 20px/32px Roboto, "Helvetica Neue", sans-serif
+}
+
+.mat-button {
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
 }
