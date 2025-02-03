@@ -43,7 +43,7 @@ import {TermsComponent} from './terms/terms.component';
 import {RuleInputComponent} from './rule/rule.component';
 import {FileSizePipe} from './file-size.pipe';
 import {ColorPickerModule} from 'ngx-color-picker';
-import {CodemirrorComponent} from './codemirror/codemirror.component';
+import {CodeComponent} from './code/code.component';
 import {BrowserModule} from '@angular/platform-browser';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {AngularSplitModule} from 'angular-split';
@@ -63,7 +63,7 @@ if (environment.production) {
     TermsComponent,
     RuleInputComponent,
     FileSizePipe,
-    CodemirrorComponent
+    CodeComponent
   ],
   imports: [
     RouterModule.forRoot(routes),

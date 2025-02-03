@@ -20,8 +20,7 @@ import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
 import bbox from '@turf/bbox';
 import { GeoJSONService } from '../services/geojson.service';
-import {Feature} from 'geojson';
-
+import { Feature } from 'geojson';
 
 const LAYER_ID = 'geojson-layer';
 

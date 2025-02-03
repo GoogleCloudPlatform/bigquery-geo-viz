@@ -255,6 +255,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
         return;
       }
       this.user = this.dataService.getUser();
+
+      console.log(`User: ${this.user}`);
+
       this.storageService.authorize(this.dataService.getCredential());
       this.dataService.getProjects()
         .then((projects) => {

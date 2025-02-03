@@ -11,7 +11,7 @@ import * as CodeMirror from 'codemirror';
 export type CodeEditorMode = 'sql';
 
 /**
- * CodeMirror component
+ * Code component, wraps CodeMirror
  * Usage :
  * <codemirror [(ngModel)]="data" [config]="{...}"></ckeditor>
  */
@@ -20,14 +20,14 @@ export type CodeEditorMode = 'sql';
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => CodemirrorComponent),
+      useExisting: forwardRef(() => CodeComponent),
       multi: true
     }
   ],
   template: `<textarea #host></textarea>`,
-  styleUrls: ['./codemirror.component.css']
+  styleUrls: ['./code.component.css']
 })
-export class CodemirrorComponent {
+export class CodeComponent {
   @Input()
   mode: CodeEditorMode = 'sql';
 
