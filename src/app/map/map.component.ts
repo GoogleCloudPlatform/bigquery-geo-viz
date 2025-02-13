@@ -19,6 +19,7 @@ import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
 import bbox from '@turf/bbox';
+import { AnalyticsService } from '../services/analytics.service';
 import { GeoJSONService } from '../services/geojson.service';
 import { Feature } from 'geojson';
 
@@ -49,11 +50,15 @@ export class MapComponent implements AfterViewInit {
   // Styling service.
   readonly styler = new StylesService();
 
+  // Analytics service.
+  private readonly analyticsService = new AnalyticsService();
+
   private _rows: object[] = [];
   private _features: Feature[] = [];
   private _styles: StyleRule[] = [];
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
+  private _reportedGeometryTypes = new Set<string>();
 
   // Detects how many times we have received new values.
   private _numChanges = 0;
@@ -149,6 +154,15 @@ export class MapComponent implements AfterViewInit {
     this._batchSize = DEFAULT_BATCH_SIZE;
   }
 
+  private reportGeometryTypes() {
+    this._activeGeometryTypes.forEach((type: string) => {
+      if (!this._reportedGeometryTypes.has(type)) {
+        this.analyticsService.report('map', 'geometry', type);
+        this._reportedGeometryTypes.add(type);
+      }
+    });
+  }
+
   /**
    * Converts row objects into GeoJSON, then loads into Maps API.
    */
@@ -162,6 +176,8 @@ export class MapComponent implements AfterViewInit {
     this._features.forEach((feature) => {
       this._activeGeometryTypes.add(feature.geometry['type']);
     });
+
+    this.reportGeometryTypes();
 
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({ type: 'FeatureCollection', features: this._features });
@@ -235,7 +251,6 @@ export class MapComponent implements AfterViewInit {
    * @param style
    */
   getStyle(feature, styles: StyleRule[], styleName: string) {
-    // console.log(feature, styles, styleName, this.styler.parseStyle(styleName, feature['properties'], styles[styleName]))
     return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
   }
 

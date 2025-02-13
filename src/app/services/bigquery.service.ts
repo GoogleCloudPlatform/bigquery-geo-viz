@@ -15,6 +15,7 @@
  */
 
 import {environment} from '../../environments/environment';
+import {AnalyticsService} from './analytics.service';
 import {MAX_RESULTS, TIMEOUT_MS} from '../app.constants';
 
 export const ColumnType = {
@@ -75,6 +76,7 @@ export interface BigQueryResponse {
  * Utility class for managing interaction with the Cloud BigQuery API.
  */
 export class BigQueryService {
+  private readonly analyticsService = new AnalyticsService();
 
   public isSignedIn = false;
   public projects: Array<Project> = [];
@@ -90,9 +92,9 @@ export class BigQueryService {
     return pendingGapi
       .then(() => {
         gapi.client.init({
-            clientId: environment.authClientID,
-            scope: environment.authScope
-          })
+          clientId: environment.authClientID,
+          scope: environment.authScope
+        })
           .then(() => {
             gapi['auth2'].getAuthInstance().isSignedIn.listen(((isSignedIn) => {
               this.isSignedIn = isSignedIn;
