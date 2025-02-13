@@ -499,7 +499,6 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
         this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
         return this.analyticsService.benchmark(
-          'run',
           'load_complete',
           this.getResults(0, this.projectID, pageToken, this.location, jobID)
         );

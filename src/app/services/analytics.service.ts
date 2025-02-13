@@ -19,12 +19,12 @@ export class AnalyticsService {
     /**
      * Benchmark and report a Promise (typically a network call).
      */
-    async benchmark(category: string, label: string, promise: Promise<any>) {
+    async benchmark(category: string, promise: Promise<any>) {
         const t0 = performance.now();
         const result = await promise;
         const t1 = performance.now();
         try {
-            this.reportTime(category, label, Math.round(t1 - t0));
+            this.reportTime(category, Math.round(t1 - t0));
         } catch(e: unknown) {
             // Pass.
         }
@@ -47,12 +47,11 @@ export class AnalyticsService {
      * https://support.google.com/analytics/answer/14239619
      * 
      * @param {string} category The timing category (e.g. 'BigQuery').
-     * @param {string=} label A label to add flexibility in
      * @param {number} value The number of milliseconds in elapsed time to
      *     be reported (e.g. 5000).
      */
-    private reportTime(category, label, value) {
-        this.send_('performance', category, label, value);
+    private reportTime(category, value) {
+        this.send_('performance', category, '', value);
     }
 
     /**

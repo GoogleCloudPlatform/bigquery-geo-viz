@@ -253,7 +253,6 @@ export class BigQueryService {
     }
 
     return this.analyticsService.benchmark(
-      'run',
       'result_page_load',
       gapi.client.request({
         path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobID}`,
@@ -281,7 +280,6 @@ export class BigQueryService {
       body['location'] = location;
     }
     return this.analyticsService.benchmark(
-      'run',
       'first_load',
       gapi.client.request({
         path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
