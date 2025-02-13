@@ -252,19 +252,22 @@ export class BigQueryService {
       body['location'] = location;
     }
 
-    return gapi.client.request({
-      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobID}`,
-      method: 'GET',
-      params: body,
-    }).then((response) => {
-      if (response.result.jobComplete === false) {
-        throw new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds. This UI does not yet handle longer jobs.`);
-      }
-      // Normalize row structure.
-      const rows = this.normalizeRows(response.result.rows, normalized_cols, stats);
+    return this.analyticsService.benchmark(
+      'run',
+      'result_page_load',
+      gapi.client.request({
+        path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobID}`,
+        method: 'GET',
+        params: body,
+      }).then((response) => {
+        if (response.result.jobComplete === false) {
+          throw new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds. This UI does not yet handle longer jobs.`);
+        }
+        // Normalize row structure.
+        const rows = this.normalizeRows(response.result.rows, normalized_cols, stats);
 
-      return {rows, stats, pageToken: response.result.pageToken} as BigQueryResponse;
-    });
+        return {rows, stats, pageToken: response.result.pageToken} as BigQueryResponse;
+      }));
   }
 
   query(projectID: string, sql: string, location: string): Promise<BigQueryResponse> {
@@ -277,44 +280,47 @@ export class BigQueryService {
     if (location) {
       body['location'] = location;
     }
-    return gapi.client.request({
-      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
-      method: 'POST',
-      body,
-    }).then((response) => {
-      const stats = new Map();
+    return this.analyticsService.benchmark(
+      'run',
+      'first_load',
+      gapi.client.request({
+        path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
+        method: 'POST',
+        body,
+      }).then((response) => {
+        const stats = new Map();
 
-      if (response.result.jobComplete === false) {
-        throw new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds. This UI does not yet handle longer jobs.`);
-      }
-
-      // Normalize column types.
-      const columnNames = [];
-      const columns = (response.result.schema.fields || []).map((field) => {
-        if (isNumericField(field)) {
-          field.type = ColumnType.NUMBER;
-          stats.set(field.name, {min: Infinity, max: -Infinity, nulls: 0});
-        } else {
-          field.type = ColumnType.STRING;
+        if (response.result.jobComplete === false) {
+          throw new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds. This UI does not yet handle longer jobs.`);
         }
-        columnNames.push(field.name);
-        return field;
-      });
 
-      // Normalize row structure.
-      const rows = this.normalizeRows(response.result.rows, columns, stats);
+        // Normalize column types.
+        const columnNames = [];
+        const columns = (response.result.schema.fields || []).map((field) => {
+          if (isNumericField(field)) {
+            field.type = ColumnType.NUMBER;
+            stats.set(field.name, {min: Infinity, max: -Infinity, nulls: 0});
+          } else {
+            field.type = ColumnType.STRING;
+          }
+          columnNames.push(field.name);
+          return field;
+        });
 
-      if (rows.length === 0) {
-        throw new Error('No results.');
-      }
+        // Normalize row structure.
+        const rows = this.normalizeRows(response.result.rows, columns, stats);
 
-      const totalRows = Number(response.result.totalRows);
+        if (rows.length === 0) {
+          throw new Error('No results.');
+        }
 
-      return {
-        columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobID: response.result.jobReference.jobId,
-        totalBytesProcessed: Number(response.result.totalBytesProcessed)
-      } as BigQueryResponse;
-    });
+        const totalRows = Number(response.result.totalRows);
+
+        return {
+          columns, columnNames, rows, stats, totalRows, pageToken: response.result.pageToken, jobID: response.result.jobReference.jobId,
+          totalBytesProcessed: Number(response.result.totalBytesProcessed)
+        } as BigQueryResponse;
+      }));
   }
 }
 

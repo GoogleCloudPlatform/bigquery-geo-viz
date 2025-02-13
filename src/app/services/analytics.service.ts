@@ -23,7 +23,11 @@ export class AnalyticsService {
         const t0 = performance.now();
         const result = await promise;
         const t1 = performance.now();
-        this.reportTime(category, label, Math.round(t1 - t0));
+        try {
+            this.reportTime(category, label, Math.round(t1 - t0));
+        } catch(e: unknown) {
+            // Pass.
+        }
         return result;
     }
 
@@ -40,7 +44,8 @@ export class AnalyticsService {
 
     /**
      * Measure load time of an action or execution.
-     * https://developers.google.com/analytics/devguides/migration/ua/analyticsjs-to-gtagjs#measure_timings
+     * https://support.google.com/analytics/answer/14239619
+     * 
      * @param {string} category The timing category (e.g. 'BigQuery').
      * @param {string=} label A label to add flexibility in
      * @param {number} value The number of milliseconds in elapsed time to

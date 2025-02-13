@@ -283,7 +283,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
           projectID: this.projectID,
         });
       } else if (this.sharingId) {
-        this.analyticsService.report('load', 'save state', 'from URL');
+        this.analyticsService.report('load', 'saved_state', 'from URL');
         this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
           this.applyRetrievedSharingValues(shareableValues);
         }).catch((e) => this.showMessage(parseErrorMessage(e)));
@@ -352,7 +352,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       }).catch((e) => this.showMessage(parseErrorMessage(e)));
     }
     this.sharingIdGenerationPending = false;
-    this.analyticsService.report('share', 'stave state');
+    this.analyticsService.report('share', 'staved_state');
   }
 
   onStepperChange(e: StepperSelectionEvent) {
@@ -500,7 +500,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
         this.bytesProcessed = totalBytesProcessed;
         return this.analyticsService.benchmark(
           'run',
-          'render complete',
+          'load_complete',
           this.getResults(0, this.projectID, pageToken, this.location, jobID)
         );
       })
@@ -535,15 +535,23 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
     this.styles = this.stylesFormGroup.getRawValue();
   }
 
+  /**
+   * Reports the currently selected styles to Analytics.
+   * 
+   * The key is the visualization property, e.g., `fillColor`, and the label is one of:
+   *   - `global`,
+   *   - `none`, or
+   *   - for data-driven styles, the function used (`linear`, `interval` etc.).
+   */
   private reportStyles() {
-    for (const key of Object.keys(this.stylesFormGroup.getRawValue())) {
-      const style = this.styles[key];
+    for (const styleProperty of Object.keys(this.stylesFormGroup.getRawValue())) {
+      const style = this.styles[styleProperty];
       if (style?.isComputed && style?.function) {
-        this.analyticsService.report('visualize', `${key}`, style.function);
+        this.analyticsService.report('visualize', `${styleProperty}`, style.function);
       } else if (!style?.isComputed && style?.value) {
-        this.analyticsService.report('visualize', `${key}`, 'global');
+        this.analyticsService.report('visualize', `${styleProperty}`, 'global');
       } else {
-        this.analyticsService.report('visualize', `${key}`, 'none');
+        this.analyticsService.report('visualize', `${styleProperty}`, 'none');
       }
     }
   }
