@@ -26,7 +26,7 @@ export class AnalyticsService {
         try {
             this.reportTime(category, Math.round(t1 - t0));
         } catch(e: unknown) {
-            // Pass.
+            console.error(e);
         }
         return result;
     }
