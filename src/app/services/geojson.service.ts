@@ -1,6 +1,9 @@
 import { Feature } from 'geojson';
+import { AnalyticsService } from './analytics.service';
 
 export class GeoJSONService {
+  private static readonly analyticsService = new AnalyticsService();
+
   /**
    * Converts rows to GeoJSON features.
    * @param rows

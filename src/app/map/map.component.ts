@@ -19,7 +19,7 @@ import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
 import bbox from '@turf/bbox';
-import { AnalyticsService } from '../services/analytics.service';
+import { AnalyticsService, debounce } from '../services/analytics.service';
 import { GeoJSONService } from '../services/geojson.service';
 import { Feature } from 'geojson';
 
@@ -28,6 +28,8 @@ const LAYER_ID = 'geojson-layer';
 const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 
 const DEFAULT_BATCH_SIZE = 5;
+
+const GEOMETRY_ANALYTICS_DEBOUNCE_TIMER = 30000;
 
 @Component({
   selector: 'app-map',
@@ -53,12 +55,18 @@ export class MapComponent implements AfterViewInit {
   // Analytics service.
   private readonly analyticsService = new AnalyticsService();
 
+  private readonly reportGeometryAnalytics = debounce(() => {
+    this._activeGeometryTypes.forEach((type: string) => {
+      this.analyticsService.report('map', 'geometry', type);
+    });
+    this.analyticsService.report('map', 'geometry_count', '', this._features.length);
+  }, GEOMETRY_ANALYTICS_DEBOUNCE_TIMER);
+
   private _rows: object[] = [];
   private _features: Feature[] = [];
   private _styles: StyleRule[] = [];
   private _geoColumn: string;
   private _activeGeometryTypes = new Set<string>();
-  private _reportedGeometryTypes = new Set<string>();
 
   // Detects how many times we have received new values.
   private _numChanges = 0;
@@ -154,15 +162,6 @@ export class MapComponent implements AfterViewInit {
     this._batchSize = DEFAULT_BATCH_SIZE;
   }
 
-  private reportGeometryTypes() {
-    this._activeGeometryTypes.forEach((type: string) => {
-      if (!this._reportedGeometryTypes.has(type)) {
-        this.analyticsService.report('map', 'geometry', type);
-        this._reportedGeometryTypes.add(type);
-      }
-    });
-  }
-
   /**
    * Converts row objects into GeoJSON, then loads into Maps API.
    */
@@ -177,7 +176,7 @@ export class MapComponent implements AfterViewInit {
       this._activeGeometryTypes.add(feature.geometry['type']);
     });
 
-    this.reportGeometryTypes();
+    this.reportGeometryAnalytics();
 
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({ type: 'FeatureCollection', features: this._features });

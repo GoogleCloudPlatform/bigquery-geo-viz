@@ -14,8 +14,20 @@
  * limitations under the License.
  */
 
-export class AnalyticsService {
+/**
+ * Defer a function call until no further calls after the wait time (in milliseconds).
+ */
+export function debounce(callback: Function, wait: number) {
+    let timeoutId = null;
+    return (...args: any) => {
+        window.clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => {
+            callback(...args);
+        }, wait);
+    };
+}
 
+export class AnalyticsService {
     /**
      * Benchmark and report a Promise (typically a network call).
      */
@@ -39,6 +51,8 @@ export class AnalyticsService {
      * @param {number=} value An optional numeric value associated with the event.
      */
     report(action, category, label = undefined, value = 1) {
+        // DEBUG REMOVE THIS
+        console.log(action, category, label, value);
         this.send_(action, category, label, value);
     }
 
@@ -92,6 +106,10 @@ export class AnalyticsService {
             return;
         }
         const tracker = window['gtag'];
-        tracker.apply(window, ['event', action, payload]);
+        try {
+            tracker.apply(window, ['event', action, payload]);
+        } catch(e: unknown) {
+            console.error(e);
+        }
     }
 }
