@@ -31,12 +31,12 @@ export class AnalyticsService {
     /**
      * Benchmark and report a Promise (typically a network call).
      */
-    async benchmark(category: string, promise: Promise<any>) {
+    async reportBenchmark(action: string, category: string, promise: Promise<any>) {
         const t0 = performance.now();
         const result = await promise;
         const t1 = performance.now();
         try {
-            this.reportTime(category, Math.round(t1 - t0));
+            this.report(action, category, /* label= */ '', Math.round(t1 - t0));
         } catch(e: unknown) {
             console.error(e);
         }
@@ -45,40 +45,23 @@ export class AnalyticsService {
 
     /**
      * Records an event.
-     * @param {string} action The event action.
-     * @param {string} category The event category.
-     * @param {string=} label The optional event label.
-     * @param {number=} value An optional numeric value associated with the event.
+     * @param action The event action.
+     * @param category The event category.
+     * @param label The optional event label.
+     * @param value An optional numeric value associated with the event.
      */
-    report(action, category, label = undefined, value = 1) {
-        // DEBUG REMOVE THIS
-        console.log(action, category, label, value);
-        this.send_(action, category, label, value);
-    }
-
-    /**
-     * Measure load time of an action or execution.
-     * https://support.google.com/analytics/answer/14239619
-     * 
-     * @param {string} category The timing category (e.g. 'BigQuery').
-     * @param {number} value The number of milliseconds in elapsed time to
-     *     be reported (e.g. 5000).
-     */
-    private reportTime(category, value) {
-        this.send_('performance', category, '', value);
+    report(action: string, category = '', label: string = '', value = 1) {
+        this.send(action, category, label, value);
     }
 
     /**
      * Sends a Google Analytics request.
-     * @param {string} action The event action.
-     * @param {string=} category The event category.
-     * @param {string=} label The optional event label.
-     * @param {number=} value An optional numeric value associated with the event.
-     * @param {string=} name An optional name associated with the event.
-     *     event.
-     * @private
+     * @param action The event action.
+     * @param category The event category.
+     * @param label The optional event label.
+     * @param value An optional numeric value associated with the event.
      */
-    send_(action, category = '', label = '', value = 1, name = '') {
+    private send(action: string, category: string, label: string, value: number) {
         const payload = {
             'value': value,
         };
@@ -88,20 +71,16 @@ export class AnalyticsService {
         if (label) {
             payload['event_label'] = label;
         }
-        if (name) {
-            payload['name'] = name;
-        }
         // Actually send the request.
-        this.sendPayload_(action, payload);
+        this.sendPayload(action, payload);
     }
 
     /**
      * Sends a Google Analytics request.
-     * @param {string} action The event action.
-     * @param {!Object} payload The payload to send.
-     * @private
+     * @param action The event action.
+     * @param payload The payload to send.
      */
-    sendPayload_(action, payload) {
+    private sendPayload(action: string, payload: Object) {
         if (!window['gtag'] || !(window['gtag'] instanceof Function)) {
             return;
         }

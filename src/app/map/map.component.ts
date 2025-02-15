@@ -15,12 +15,14 @@
  */
 
 import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit, IterableDiffers, IterableDiffer } from '@angular/core';
-import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
 import bbox from '@turf/bbox';
+import { coordAll } from "@turf/meta";
+
 import { AnalyticsService, debounce } from '../services/analytics.service';
 import { GeoJSONService } from '../services/geojson.service';
+import { StylesService, StyleRule } from '../services/styles.service';
 import { Feature } from 'geojson';
 
 const LAYER_ID = 'geojson-layer';
@@ -57,9 +59,13 @@ export class MapComponent implements AfterViewInit {
 
   private readonly reportGeometryAnalytics = debounce(() => {
     this._activeGeometryTypes.forEach((type: string) => {
-      this.analyticsService.report('map', 'geometry', type);
+      this.analyticsService.report('geometry_type', 'map', type);
     });
-    this.analyticsService.report('map', 'geometry_count', '', this._features.length);
+    this.analyticsService.report('feature_count', 'map', /* label= */ '', this._features.length);
+    const vertexCount = this._features.reduce((allVertexCounts, curr) => {
+      return allVertexCounts + coordAll(curr).length;
+    }, 0);
+    this.analyticsService.report('vertex_count', 'map', /* label= */ '', vertexCount);
   }, GEOMETRY_ANALYTICS_DEBOUNCE_TIMER);
 
   private _rows: object[] = [];

@@ -281,7 +281,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
           projectID: this.projectID,
         });
       } else if (this.sharingId) {
-        this.analyticsService.report('load', 'saved_state', 'from URL');
+        this.analyticsService.report('saved_state', 'load', 'from URL');
         this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
           this.applyRetrievedSharingValues(shareableValues);
         }).catch((e) => this.showMessage(parseErrorMessage(e)));
@@ -350,7 +350,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       }).catch((e) => this.showMessage(parseErrorMessage(e)));
     }
     this.sharingIdGenerationPending = false;
-    this.analyticsService.report('share', 'staved_state');
+    this.analyticsService.report('saved_state', 'share');
   }
 
   onStepperChange(e: StepperSelectionEvent) {
@@ -496,8 +496,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
         this.totalRows = totalRows;
         this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
-        return this.analyticsService.benchmark(
+        return this.analyticsService.reportBenchmark(
           'load_complete',
+          'map',
           this.getResults(0, this.projectID, pageToken, this.location, jobID)
         );
       })
@@ -544,11 +545,11 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
     for (const styleProperty of Object.keys(this.stylesFormGroup.getRawValue())) {
       const style = this.styles[styleProperty];
       if (style?.isComputed && style?.function) {
-        this.analyticsService.report('visualize', `${styleProperty}`, style.function);
+        this.analyticsService.report(`${styleProperty}`, 'visualize', style.function);
       } else if (!style?.isComputed && style?.value) {
-        this.analyticsService.report('visualize', `${styleProperty}`, 'global');
+        this.analyticsService.report(`${styleProperty}`, 'visualize', 'global');
       } else {
-        this.analyticsService.report('visualize', `${styleProperty}`, 'none');
+        this.analyticsService.report(`${styleProperty}`, 'visualize', 'none');
       }
     }
   }
