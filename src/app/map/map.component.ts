@@ -15,11 +15,14 @@
  */
 
 import { Component, ElementRef, Input, NgZone, ViewChild, AfterViewInit, IterableDiffers, IterableDiffer } from '@angular/core';
-import { StylesService, StyleRule } from '../services/styles.service';
 import { GeoJsonLayer } from '@deck.gl/layers';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
 import bbox from '@turf/bbox';
+import { coordAll } from "@turf/meta";
+
+import { AnalyticsService, debounce } from '../services/analytics.service';
 import { GeoJSONService } from '../services/geojson.service';
+import { StylesService, StyleRule } from '../services/styles.service';
 import { Feature } from 'geojson';
 
 const LAYER_ID = 'geojson-layer';
@@ -27,6 +30,8 @@ const LAYER_ID = 'geojson-layer';
 const INITIAL_VIEW_STATE = { latitude: 45, longitude: 0, zoom: 2, pitch: 0 };
 
 const DEFAULT_BATCH_SIZE = 5;
+
+const GEOMETRY_ANALYTICS_DEBOUNCE_TIMER = 30000;
 
 @Component({
   selector: 'app-map',
@@ -48,6 +53,20 @@ export class MapComponent implements AfterViewInit {
 
   // Styling service.
   readonly styler = new StylesService();
+
+  // Analytics service.
+  private readonly analyticsService = new AnalyticsService();
+
+  private readonly reportGeometryAnalytics = debounce(() => {
+    this._activeGeometryTypes.forEach((type: string) => {
+      this.analyticsService.report('geometry_type', 'map', type);
+    });
+    this.analyticsService.report('feature_count', 'map', /* label= */ '', this._features.length);
+    const vertexCount = this._features.reduce((allVertexCounts, curr) => {
+      return allVertexCounts + coordAll(curr).length;
+    }, 0);
+    this.analyticsService.report('vertex_count', 'map', /* label= */ '', vertexCount);
+  }, GEOMETRY_ANALYTICS_DEBOUNCE_TIMER);
 
   private _rows: object[] = [];
   private _features: Feature[] = [];
@@ -163,6 +182,8 @@ export class MapComponent implements AfterViewInit {
       this._activeGeometryTypes.add(feature.geometry['type']);
     });
 
+    this.reportGeometryAnalytics();
+
     // Fit viewport bounds to the data.
     const [minX, minY, maxX, maxY] = bbox({ type: 'FeatureCollection', features: this._features });
     const bounds = new google.maps.LatLngBounds(
@@ -235,7 +256,6 @@ export class MapComponent implements AfterViewInit {
    * @param style
    */
   getStyle(feature, styles: StyleRule[], styleName: string) {
-    // console.log(feature, styles, styleName, this.styler.parseStyle(styleName, feature['properties'], styles[styleName]))
     return this.styler.parseStyle(styleName, feature['properties'], styles[styleName]);
   }
 

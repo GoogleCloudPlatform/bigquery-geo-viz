@@ -17,19 +17,18 @@
 import {Component, ChangeDetectorRef, Inject, NgZone, OnInit, OnDestroy, AfterViewInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {FormBuilder, FormGroup, FormControl, FormArray, Validators} from '@angular/forms';
-import {LOCAL_STORAGE, StorageService} from 'ngx-webstorage-service';
-
 import {MatTableDataSource} from '@angular/material/table';
 import {MatSnackBar} from '@angular/material/snack-bar';
-
 import {StepperSelectionEvent} from '@angular/cdk/stepper';
 
-import {Subject, Subscription} from 'rxjs';
-
-import {debounceTime} from 'rxjs/operators';
+import {LOCAL_STORAGE, StorageService} from 'ngx-webstorage-service';
 
 import * as CryptoJS from 'crypto-js';
 
+import {Subject, Subscription} from 'rxjs';
+import {debounceTime} from 'rxjs/operators';
+
+import {AnalyticsService} from '../services/analytics.service';
 import {StyleProps, StyleRule} from '../services/styles.service';
 import {
   BigQueryService,
@@ -39,9 +38,7 @@ import {
   BigQueryDryRunResponse,
   BigQueryResponse
 } from '../services/bigquery.service';
-
 import {FirestoreService, ShareableData} from '../services/firestore.service';
-
 import {
   Step,
   SAMPLE_QUERY,
@@ -52,7 +49,6 @@ import {
   SHARING_VERSION,
   MAX_RESULTS,
   MAX_PAGES
-
 } from '../app.constants';
 
 const DEBOUNCE_MS = 1000;
@@ -77,6 +73,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
   // GCP session data
   readonly dataService = new BigQueryService();
   readonly storageService = new FirestoreService();
+
+  private readonly analyticsService = new AnalyticsService();
+
   isSignedIn: boolean;
   user: Object;
   matchingProjects: Array<Project> = [];
@@ -256,8 +255,6 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       }
       this.user = this.dataService.getUser();
 
-      console.log(`User: ${this.user}`);
-
       this.storageService.authorize(this.dataService.getCredential());
       this.dataService.getProjects()
         .then((projects) => {
@@ -284,6 +281,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
           projectID: this.projectID,
         });
       } else if (this.sharingId) {
+        this.analyticsService.report('saved_state', 'load', 'from URL');
         this.restoreDataFromSharedStorage(this.sharingId).then((shareableValues) => {
           this.applyRetrievedSharingValues(shareableValues);
         }).catch((e) => this.showMessage(parseErrorMessage(e)));
@@ -323,6 +321,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
         this.setNumStops(<FormGroup>this.stylesFormGroup.controls.circleRadius, unencryptedStyles['circleRadius'].domain.length);
         this.stylesFormGroup.patchValue(unencryptedStyles);
         this.updateStyles();
+        this.reportStyles();
       }).catch((e) => this.showMessage('Cannot retrieve styling options.'));
     }
   }
@@ -351,6 +350,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       }).catch((e) => this.showMessage(parseErrorMessage(e)));
     }
     this.sharingIdGenerationPending = false;
+    this.analyticsService.report('saved_state', 'share');
   }
 
   onStepperChange(e: StepperSelectionEvent) {
@@ -360,7 +360,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
     } else {
       this.stepperChanged = false;
     }
-    gtag('event', 'step', {event_label: `step ${this.stepIndex}`});
+    this.analyticsService.report('step', 'stepper', `step ${this.stepIndex}`);
   }
 
   dryRun() {
@@ -422,10 +422,10 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     count = count + 1;
     return this.dataService.getResults(projectID, jobID, location, inputPageToken, this.columns, this.stats).then(({
-                                                                                                                     rows,
-                                                                                                                     stats,
-                                                                                                                     pageToken
-                                                                                                                   }) => {
+      rows,
+      stats,
+      pageToken
+    }) => {
       this.rows.push(...rows);
       this.stats = stats;
       this._changeDetectorRef.detectChanges();
@@ -496,7 +496,11 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
         this.totalRows = totalRows;
         this.jobID = jobID;
         this.bytesProcessed = totalBytesProcessed;
-        return this.getResults(0, this.projectID, pageToken, this.location, jobID);
+        return this.analyticsService.reportBenchmark(
+          'load_complete',
+          'map',
+          this.getResults(0, this.projectID, pageToken, this.location, jobID)
+        );
       })
       .catch((e) => {
         const error = e && e.result && e.result.error || {};
@@ -519,6 +523,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
   onApplyStylesClicked() {
     this.clearGeneratedSharingUrl();
     this.updateStyles();
+    this.reportStyles();
   }
 
   updateStyles() {
@@ -526,6 +531,27 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     this.styles = this.stylesFormGroup.getRawValue();
+  }
+
+  /**
+   * Reports the currently selected styles to Analytics.
+   * 
+   * The key is the visualization property, e.g., `fillColor`, and the label is one of:
+   *   - `global`,
+   *   - `none`, or
+   *   - for data-driven styles, the function used (`linear`, `interval` etc.).
+   */
+  private reportStyles() {
+    for (const styleProperty of Object.keys(this.stylesFormGroup.getRawValue())) {
+      const style = this.styles[styleProperty];
+      if (style?.isComputed && style?.function) {
+        this.analyticsService.report(`${styleProperty}`, 'visualize', style.function);
+      } else if (!style?.isComputed && style?.value) {
+        this.analyticsService.report(`${styleProperty}`, 'visualize', 'global');
+      } else {
+        this.analyticsService.report(`${styleProperty}`, 'visualize', 'none');
+      }
+    }
   }
 
   getRowWidth() {
@@ -550,8 +576,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       default:
         console.warn(`Unexpected step index, ${this.stepIndex}.`);
     }
-
-    gtag('event', 'preset', {event_label: `step ${this.stepIndex}`});
+    this.analyticsService.report('preset', 'stepper', `step ${this.stepIndex}`);
   }
 
   setNumStops(group: FormGroup, numStops: number): void {
