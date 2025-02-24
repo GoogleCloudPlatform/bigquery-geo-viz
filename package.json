@@ -37,6 +37,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/d3-scale": "^4.0.8",
     "@types/gapi": "0.0.47",
+    "@types/gapi.auth2": "^0.0.61",
     "angular-split": "^17.2.0",
     "codemirror": "5.65.18",
     "colorbrewer": "^1.5.7",
