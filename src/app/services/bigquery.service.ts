@@ -109,7 +109,7 @@ export class BigQueryService {
   /**
    * Returns current user details.
    */
-  getUser(): Object {
+  getUser(): gapi.auth2.GoogleUser {
     return gapi['auth2'].getAuthInstance().currentUser.get();
   }
 

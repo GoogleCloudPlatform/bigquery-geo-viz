@@ -8,7 +8,7 @@
   <a mat-button href="https://github.com/GoogleCloudPlatform/bigquery-geo-viz" target="_blank">Source</a>
   <a mat-button href="/terms">Terms &amp; privacy</a>
   <span class="toolbar-divider">|</span>
-  <!--  <span class="header-profile">{{ user?.getBasicProfile().getEmail() }}</span>-->
+  <span class="header-profile">{{ user?.getBasicProfile().getEmail() }}</span>
   <a mat-button *ngIf="isSignedIn" (click)="signout()">Sign out</a>
 </mat-toolbar>
 

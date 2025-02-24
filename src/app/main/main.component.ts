@@ -77,7 +77,7 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly analyticsService = new AnalyticsService();
 
   isSignedIn: boolean;
-  user: Object;
+  user: gapi.auth2.GoogleUser;
   matchingProjects: Array<Project> = [];
 
   // Form groups
