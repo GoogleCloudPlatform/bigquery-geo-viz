@@ -45,7 +45,7 @@
     "crypto-js": "^4.2.0",
     "d3-color": "^1.4.0",
     "d3-scale": "^1.0.7",
-    "firebase": "7.24.0",
+    "firebase": "10.9.0",
     "js-file-download": "^0.4.12",
     "ngx-color-picker": "^17.0.0",
     "ngx-webstorage-service": "^5.0.0",
