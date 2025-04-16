@@ -61,6 +61,11 @@ export class MapComponent implements AfterViewInit {
     this._activeGeometryTypes.forEach((type: string) => {
       this.analyticsService.report('geometry_type', 'map', type);
     });
+    this.analyticsService.report(
+      'geometry_composition',
+      'map',
+      [...this._activeGeometryTypes].sort().join(' ')
+    );
     this.analyticsService.report('feature_count', 'map', /* label= */ '', this._features.length);
     const vertexCount = this._features.reduce((allVertexCounts, curr) => {
       return allVertexCounts + coordAll(curr).length;
