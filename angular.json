@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "fusiontables2earth": {
+    "geoviz": {
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
@@ -69,18 +69,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "fusiontables2earth:build"
+            "browserTarget": "geoviz:build:development"
           },
           "configurations": {
             "production": {
-              "browserTarget": "fusiontables2earth:build:production"
+              "browserTarget": "geoviz:build:development"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "fusiontables2earth:build"
+            "browserTarget": "geoviz:build"
           }
         },
         "test": {
@@ -117,7 +117,7 @@
         }
       }
     },
-    "fusiontables2earth-e2e": {
+    "geoviz-e2e": {
       "root": "e2e",
       "sourceRoot": "e2e",
       "projectType": "application"

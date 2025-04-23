@@ -21,7 +21,7 @@ export const environment = {
 };
 
 // Your web app's Firebase configuration
-var firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDS8k-x7L9vZ_mvvdyTzwQ1LNXsYLNnhOM",
   authDomain: "bigquerygeoviz.firebaseapp.com",
   databaseURL: "https://bigquerygeoviz.firebaseio.com",
