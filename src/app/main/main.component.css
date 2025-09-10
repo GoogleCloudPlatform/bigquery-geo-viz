@@ -178,8 +178,21 @@ mat-progress-spinner {
 }
 
 .info-msg {
-  color: #059;
+  align-items: center;
   background-color: #BEF;
+  color: #059;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.info-msg a {
+  color: #059;
+  text-decoration: underline;
+}
+
+.info-msg span {
+  margin: 0 4px;
 }
 
 .success-msg {
