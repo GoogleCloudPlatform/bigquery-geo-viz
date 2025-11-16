@@ -17,7 +17,8 @@
 export const environment = {
   production: false,
   authClientID: '419125973937-kl2cru5pu2vfugne7lr1hosgseh4lo1s.apps.googleusercontent.com',
-  authScope: 'https://www.googleapis.com/auth/bigquery'
+  // Based on BigQuery documentation "drive" scope is required for accssing sheets-based tables.
+  authScope: 'https://www.googleapis.com/auth/bigquery https://www.googleapis.com/auth/drive'
 };
 
 // Your web app's Firebase configuration
