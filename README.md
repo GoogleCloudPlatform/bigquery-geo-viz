@@ -27,7 +27,7 @@ This will run `npm run build`, copy the `app.yaml` into the `dist/` directory
 and deploy the app from there at the specified project and version ID.
 
 ```shell
-npm run deploy --project=my-project --app_version=my-version-id
+PROJECT=my-project APP_VERSION=my-version-id npm run deploy
 ```
 
 Once deployed, the version will be available to test at the specified project
@@ -45,7 +45,7 @@ https://beta-dot-bigquerygeoviz.appspot.com
 ### Deploy to a (prod) version (for GeoViz maintainers)
 
 ```shell
-npm run deploy:prod --app_version=my-version-id
+APP_VERSION=my-version-id npm run deploy:prod
 ```
 
 Once deployed, the version will be available to test at the specified version:
