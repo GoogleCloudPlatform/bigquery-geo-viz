@@ -289,7 +289,10 @@ export class MapComponent implements AfterViewInit {
    * @param latLng
    */
   showInfoWindow(feature: Feature, latLng: google.maps.LatLng) {
-    this.infoWindow.setContent(`<pre>${JSON.stringify(feature.properties, null, 2)}</pre>`);
+    // Use textContent rather than an HTML string, so row values are never parsed as HTML.
+    const pre = document.createElement('pre');
+    pre.textContent = JSON.stringify(feature.properties, null, 2);
+    this.infoWindow.setContent(pre);
     this.infoWindow.open(this.map);
     this.infoWindow.setPosition(latLng);
   }
