@@ -73,6 +73,18 @@ export interface BigQueryResponse {
 }
 
 /**
+ * Encodes a value for safe use as a single REST path segment. Rejects empty
+ * values and dot-segments, which encodeURIComponent() leaves unchanged and
+ * which would otherwise allow path traversal.
+ */
+function pathSegment(value: string): string {
+  if (!value || value === '.' || value === '..') {
+    throw new Error(`Invalid path segment: "${value}"`);
+  }
+  return encodeURIComponent(value);
+}
+
+/**
  * Utility class for managing interaction with the Cloud BigQuery API.
  */
 export class BigQueryService {
@@ -167,10 +179,11 @@ export class BigQueryService {
    * Queries and returns the sql text for a specific job ID. Throws an error if the
    * job id is not for a SELECT statement.
    */
-  getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Query> {
-    const location_param = location ? `location=${location}` : '';
+  async getQueryFromJob(jobID: string, location: string, projectID: string): Promise<Query> {
+    const params = location ? {location: location} : {};
     return gapi.client.request({
-      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs/${jobID}?${location_param}`
+      path: `https://www.googleapis.com/bigquery/v2/projects/${pathSegment(projectID)}/jobs/${pathSegment(jobID)}`,
+      params: params
     }).then((response) => {
       if (!response.result.statistics.query) {
         throw new Error('Job id is not for a query job.');
@@ -189,7 +202,7 @@ export class BigQueryService {
    * @param projectID
    * @param sql
    */
-  prequery(projectID: string, sql: string, location: string): Promise<BigQueryDryRunResponse> {
+  async prequery(projectID: string, sql: string, location: string): Promise<BigQueryDryRunResponse> {
     const configuration = {
       dryRun: true,
       query: {
@@ -203,7 +216,7 @@ export class BigQueryService {
       configuration.query['location'] = location;
     }
     return gapi.client.request({
-      path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/jobs`,
+      path: `https://www.googleapis.com/bigquery/v2/projects/${pathSegment(projectID)}/jobs`,
       method: 'POST',
       body: {configuration},
     }).then((response) => {
@@ -242,7 +255,7 @@ export class BigQueryService {
     });
   }
 
-  getResults(projectID: string, jobID: string, location: string, pageToken: string, normalized_cols: Array<Object>, stats: Map<String, ColumnStat>): Promise<BigQueryResponse> {
+  async getResults(projectID: string, jobID: string, location: string, pageToken: string, normalized_cols: Array<Object>, stats: Map<String, ColumnStat>): Promise<BigQueryResponse> {
     const body = {
       maxResults: MAX_RESULTS,
       timeoutMs: TIMEOUT_MS,
@@ -256,7 +269,7 @@ export class BigQueryService {
       'result_page_load',
       'map',
       gapi.client.request({
-        path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries/${jobID}`,
+        path: `https://www.googleapis.com/bigquery/v2/projects/${pathSegment(projectID)}/queries/${pathSegment(jobID)}`,
         method: 'GET',
         params: body,
       }).then((response) => {
@@ -270,7 +283,7 @@ export class BigQueryService {
       }));
   }
 
-  query(projectID: string, sql: string, location: string): Promise<BigQueryResponse> {
+  async query(projectID: string, sql: string, location: string): Promise<BigQueryResponse> {
     const body = {
       query: sql,
       maxResults: MAX_RESULTS,
@@ -284,7 +297,7 @@ export class BigQueryService {
       'first_load',
       'map',
       gapi.client.request({
-        path: `https://www.googleapis.com/bigquery/v2/projects/${projectID}/queries`,
+        path: `https://www.googleapis.com/bigquery/v2/projects/${pathSegment(projectID)}/queries`,
         method: 'POST',
         body,
       }).then((response) => {

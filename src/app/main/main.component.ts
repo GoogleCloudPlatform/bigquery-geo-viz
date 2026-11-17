@@ -67,7 +67,8 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly projectIDRegExp = new RegExp('^[a-z][a-z0-9\.:-]*$', 'i');
   readonly datasetIDRegExp = new RegExp('^[_a-z][a-z_0-9]*$', 'i');
   readonly tableIDRegExp = new RegExp('^[a-z][a-z_0-9]*$', 'i');
-  readonly jobIDRegExp = new RegExp('[a-z0-9_-]*$', 'i');
+  readonly jobIDRegExp = new RegExp('^[a-z0-9_-]+$', 'i');
+  readonly locationRegExp = new RegExp('^[a-z0-9-]*$', 'i');
   readonly localStorageKey = 'execution_local_storage_key';
 
   // GCP session data
@@ -303,6 +304,9 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
       if (shareableValues.sharingVersion != SHARING_VERSION) {
         throw new Error('Sharing link is invalid.');
       }
+      if (!this._isValidJobReference(shareableValues.projectID, shareableValues.jobID, shareableValues.location)) {
+        throw new Error('Sharing link is invalid.');
+      }
       this.dataFormGroup.patchValue({
         sql: '/* Loading sql query from job... */',
         projectID: shareableValues.projectID,
@@ -376,8 +380,19 @@ export class MainComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   _jobParamsValid(): boolean {
-    return this.projectIDRegExp.test(this.projectID) &&
-      this.jobIDRegExp.test(this.jobID);
+    return this._isValidJobReference(this.projectID, this.jobID, this.location);
+  }
+
+  /**
+   * Validates job reference values against strict allowlists before they are
+   * used to construct BigQuery REST requests. Applies to both URL route params
+   * and values restored from (untrusted) shared Firestore documents.
+   */
+  _isValidJobReference(projectID: unknown, jobID: unknown, location: unknown): boolean {
+    return typeof projectID === 'string' && this.projectIDRegExp.test(projectID) &&
+      typeof jobID === 'string' && this.jobIDRegExp.test(jobID) &&
+      (location === undefined || location === null ||
+        (typeof location === 'string' && this.locationRegExp.test(location)));
   }
 
   _tableParamsValid(): boolean {
