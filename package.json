@@ -10,9 +10,9 @@
     "test": "ng test",
     "lint": "ng lint",
     "predeploy": "npm run build",
-    "deploy": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project $npm_config_project --version $npm_config_app_version --no-promote",
-    "deploy:beta": "npm run deploy --project=bigquerygeoviz --app_version=beta",
-    "deploy:prod": "npm run deploy --project=bigquerygeoviz --app_version=$npm_config_app_version"
+    "deploy": "cp app.yaml dist/app.yaml && cd dist && gcloud app deploy --project ${PROJECT:?set PROJECT} --version ${APP_VERSION:?set APP_VERSION} --no-promote",
+    "deploy:beta": "PROJECT=bigquerygeoviz APP_VERSION=beta npm run deploy",
+    "deploy:prod": "PROJECT=bigquerygeoviz npm run deploy"
   },
   "private": true,
   "dependencies": {
